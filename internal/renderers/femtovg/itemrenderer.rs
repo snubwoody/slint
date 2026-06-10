@@ -21,8 +21,8 @@ use i_slint_core::items::{
     self, Clip, FillRule, ImageRendering, ImageTiling, ItemRc, Layer, Opacity, RenderingResult,
 };
 use i_slint_core::lengths::{
-    LogicalBorderRadius, LogicalLength, LogicalPoint, LogicalRect, LogicalSize, LogicalVector,
-    RectLengths, ScaleFactor, logical_size_from_api,
+    LogicalBorderRadius, LogicalBorderWidth, LogicalLength, LogicalPoint, LogicalRect, LogicalSize,
+    LogicalVector, PhysicalBorderWidth, RectLengths, ScaleFactor, logical_size_from_api,
 };
 use i_slint_core::textlayout::sharedparley::{self, GlyphRenderer, fontique, parley};
 use i_slint_core::{Brush, Color, ImageInner, SharedString};
@@ -141,24 +141,21 @@ fn rect_to_path(r: PhysicalRect) -> femtovg::Path {
 
 fn adjust_rect_and_border_for_inner_drawing(
     rect: &mut PhysicalRect,
-    border_width: &mut PhysicalLength,
-    border_top_width: &mut PhysicalLength,
-    border_right_width: &mut PhysicalLength,
-    border_bottom_width: &mut PhysicalLength,
-    border_left_width: &mut PhysicalLength,
+    border_width: &mut PhysicalBorderWidth,
 ) {
     // If the border width exceeds the width, just fill the rectangle.
-    *border_width = border_width.min(rect.width_length() / 2.);
+    // *border_width = border_width.min(rect.width_length() / 2.);
     // DOC: new
-    *border_top_width = border_top_width.min(rect.width_length() / 2.);
-    *border_right_width = border_right_width.min(rect.width_length() / 2.);
-    *border_bottom_width = border_bottom_width.min(rect.width_length() / 2.);
-    *border_left_width = border_left_width.min(rect.width_length() / 2.);
+    // *border_width.top = border_width.top.min(rect.width_length() / 2.);
+    // *border_right_width = border_right_width.min(rect.width_length() / 2.);
+    // *border_bottom_width = border_bottom_width.min(rect.width_length() / 2.);
+    // *border_left_width = border_left_width.min(rect.width_length() / 2.);
     // adjust the size so that the border is drawn within the geometry
 
+    // DOC: FIXME
     // DOC: maybe in adjust the origin by left and top, then size by right and bottom
-    rect.origin += PhysicalSize::from_lengths(*border_left_width / 2., *border_top_width / 2.);
-    rect.size -= PhysicalSize::from_lengths(*border_right_width, *border_bottom_width);
+    // rect.origin += PhysicalSize::from_lengths(*border_left_width / 2., *border_width.top / 2.);
+    // rect.size -= PhysicalSize::from_lengths(*border_right_width, *border_bottom_width);
 }
 
 fn path_bounding_box<R: femtovg::Renderer>(
@@ -183,34 +180,24 @@ fn path_bounding_box<R: femtovg::Renderer>(
 fn clip_path_for_rect_alike_item(
     clip_rect: LogicalRect,
     mut radius: LogicalBorderRadius,
-    mut border_width: LogicalLength,
+    mut border_width: LogicalBorderWidth,
     scale_factor: ScaleFactor,
 ) -> femtovg::Path {
     // Femtovg renders evenly 50% inside and 50% outside of the border width. The
     // adjust_rect_and_border_for_inner_drawing adjusts the rect so that for drawing it
     // would be entirely an *inner* border. However for clipping we want the rect that's
     // entirely inside, hence the doubling of the width and consequently radius adjustment.
-    radius -= LogicalBorderRadius::new_uniform(border_width.get() * KAPPA90);
+    // DOC: FIXME:
+    // radius -= LogicalBorderRadius::new_uniform(border_width.get() * KAPPA90);
     border_width *= 2.;
 
     // Convert from logical to physical pixels
     // DOC: FIXME: changed this
-    let mut new_border_width = border_width * scale_factor;
-    let mut border_top_width = border_width * scale_factor;
-    let mut border_right_width = border_width * scale_factor;
-    let mut border_left_width = border_width * scale_factor;
-    let mut border_bottom_width = border_width * scale_factor;
     let radius = radius * scale_factor;
+    let mut border_width = border_width * scale_factor;
     let mut clip_rect = clip_rect * scale_factor;
 
-    adjust_rect_and_border_for_inner_drawing(
-        &mut clip_rect,
-        &mut new_border_width,
-        &mut border_top_width,
-        &mut border_right_width,
-        &mut border_bottom_width,
-        &mut border_left_width,
-    );
+    adjust_rect_and_border_for_inner_drawing(&mut clip_rect, &mut border_width);
 
     rect_with_radius_to_path(clip_rect, radius)
 }
@@ -270,36 +257,21 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
         let border_color = rect.border_color();
         let opaque_border = border_color.is_opaque();
         let mut border_width = PhysicalLength::new(0.0);
-        // FIXME: multiply by scale factor
-        let mut border_top_width = match border_color.is_transparent() {
-            true => PhysicalLength::new(0.0),
-            false => PhysicalLength::new(rect.border_width().top),
+        let mut border_width = if border_color.is_transparent() {
+            // DOC: TODO: use zero()
+            PhysicalBorderWidth::new_uniform(0.0)
+        } else {
+            rect.border_width() * self.scale_factor
         };
-        let mut border_right_width = match border_color.is_transparent() {
-            true => PhysicalLength::new(0.0),
-            false => PhysicalLength::new(rect.border_width().right),
-        };
-        let mut border_bottom_width = match border_color.is_transparent() {
-            true => PhysicalLength::new(0.0),
-            false => PhysicalLength::new(rect.border_width().bottom),
-        };
-        let mut border_left_width = match border_color.is_transparent() {
-            true => PhysicalLength::new(0.0),
-            false => PhysicalLength::new(rect.border_width().left),
-        };
-        // let mut border_width = if border_color.is_transparent() {
-        //     PhysicalLength::new(0.)
-        // } else {
-        //     rect.border_width() * self.scale_factor
-        // };
 
         // Radius of rounded rect if we were to just fill the rectangle, without a border.
         let mut fill_radius = rect.border_radius() * self.scale_factor;
 
         // FemtoVG's border radius on stroke is in the middle of the border. But we want it to be the radius of the rectangle itself.
         // This is incorrect if fill_radius < border_width/2, but this can't be fixed. Better to have a radius a bit too big than no radius at all
-        fill_radius = fill_radius.outer(border_width / 2. + PhysicalLength::new(1.));
-        let stroke_border_radius = fill_radius.inner(border_width / 2.);
+        // DOC: FIXME
+        // fill_radius = fill_radius.outer(border_width / 2. + PhysicalLength::new(1.));
+        let stroke_border_radius = fill_radius.inner(PhysicalLength::new(border_width.left) / 2.);
 
         // In case of a transparent border, we want the background to cover the whole rectangle, which is
         // not how femtovg's stroke works. So fill the background separately in the else branch if the
@@ -309,14 +281,7 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
             // geometry, while in femtovg the line with for a stroke is 50% in-
             // and 50% outwards. We choose the CSS model, so the inner rectangle
             // is adjusted accordingly.
-            adjust_rect_and_border_for_inner_drawing(
-                &mut geometry,
-                &mut border_width,
-                &mut border_top_width,
-                &mut border_right_width,
-                &mut border_bottom_width,
-                &mut border_left_width,
-            );
+            adjust_rect_and_border_for_inner_drawing(&mut geometry, &mut border_width);
 
             (rect_with_radius_to_path(geometry, stroke_border_radius), None)
         } else {
@@ -329,14 +294,7 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
             // is adjusted accordingly.
 
             // DOC: need to override this
-            adjust_rect_and_border_for_inner_drawing(
-                &mut geometry,
-                &mut border_width,
-                &mut border_top_width,
-                &mut border_right_width,
-                &mut border_bottom_width,
-                &mut border_left_width,
-            );
+            adjust_rect_and_border_for_inner_drawing(&mut geometry, &mut border_width);
 
             // DOC: probably main thing
             let border_path = rect_with_radius_to_path(geometry, stroke_border_radius);
@@ -352,7 +310,8 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
                 maybe_border_path.as_ref().unwrap_or(&background_path),
             )
             .map(|mut paint| {
-                paint.set_line_width(border_width.get());
+                // DOC: this is it
+                // paint.set_line_width(border_width.get());
                 paint
             });
 
@@ -739,7 +698,7 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
         }
 
         let radius = clip_item.logical_border_radius();
-        let border_width = clip_item.border_width();
+        let border_width = clip_item.logical_border_width();
 
         if !radius.is_zero() {
             if let Some((layer_origin, layer_image)) =
@@ -791,7 +750,7 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
         &mut self,
         clip_rect: LogicalRect,
         radius: LogicalBorderRadius,
-        border_width: LogicalLength,
+        border_width: LogicalBorderWidth,
     ) -> bool {
         let clip = &mut self.state.last_mut().unwrap().scissor;
         let clip_region_valid = match clip.intersection(&clip_rect) {
