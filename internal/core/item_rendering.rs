@@ -330,7 +330,7 @@ pub trait RenderRectangle {
 #[allow(missing_docs)]
 pub trait RenderBorderRectangle {
     fn background(self: Pin<&Self>) -> Brush;
-    fn border_width(self: Pin<&Self>) -> LogicalLength;
+    fn border_width(self: Pin<&Self>) -> LogicalBorderWidth;
     fn border_radius(self: Pin<&Self>) -> LogicalBorderRadius;
     fn border_color(self: Pin<&Self>) -> Brush;
 }

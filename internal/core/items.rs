@@ -33,8 +33,8 @@ use crate::item_tree::ItemTreeRc;
 pub use crate::item_tree::{ItemRc, ItemTreeVTable};
 use crate::layout::LayoutInfo;
 use crate::lengths::{
-    LogicalBorderRadius, LogicalLength, LogicalRect, LogicalSize, LogicalVector, PointLengths,
-    RectLengths,
+    LogicalBorderRadius, LogicalBorderWidth, LogicalLength, LogicalRect, LogicalSize,
+    LogicalVector, PointLengths, RectLengths,
 };
 pub use crate::menus::MenuItem;
 #[cfg(feature = "rtti")]
@@ -543,8 +543,8 @@ impl RenderBorderRectangle for BasicBorderRectangle {
     fn background(self: Pin<&Self>) -> Brush {
         self.background()
     }
-    fn border_width(self: Pin<&Self>) -> LogicalLength {
-        self.border_width()
+    fn border_width(self: Pin<&Self>) -> LogicalBorderWidth {
+        LogicalBorderWidth::from_length(self.border_width())
     }
     fn border_radius(self: Pin<&Self>) -> LogicalBorderRadius {
         LogicalBorderRadius::from_length(self.border_radius())
@@ -572,6 +572,10 @@ declare_item_vtable! {
 pub struct BorderRectangle {
     pub background: Property<Brush>,
     pub border_width: Property<LogicalLength>,
+    pub border_top_width: Property<LogicalLength>,
+    pub border_right_width: Property<LogicalLength>,
+    pub border_bottom_width: Property<LogicalLength>,
+    pub border_left_width: Property<LogicalLength>,
     pub border_radius: Property<LogicalLength>,
     pub border_top_left_radius: Property<LogicalLength>,
     pub border_top_right_radius: Property<LogicalLength>,
@@ -671,8 +675,13 @@ impl RenderBorderRectangle for BorderRectangle {
     fn background(self: Pin<&Self>) -> Brush {
         self.background()
     }
-    fn border_width(self: Pin<&Self>) -> LogicalLength {
-        self.border_width()
+    fn border_width(self: Pin<&Self>) -> LogicalBorderWidth {
+        LogicalBorderWidth::from_lengths(
+            self.border_top_width(),
+            self.border_right_width(),
+            self.border_bottom_width(),
+            self.border_left_width(),
+        )
     }
     fn border_radius(self: Pin<&Self>) -> LogicalBorderRadius {
         LogicalBorderRadius::from_lengths(

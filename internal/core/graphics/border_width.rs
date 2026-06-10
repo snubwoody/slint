@@ -281,7 +281,6 @@ impl<T, U> BorderWidth<T, U> {
         BorderWidth::new(top.0, right.0, bottom.0, left.0)
     }
 
-    /// Constructor taking the same scalar value for all widths.
     pub fn new_uniform(all: T) -> Self
     where
         T: Copy,

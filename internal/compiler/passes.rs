@@ -6,6 +6,7 @@ mod binding_analysis;
 mod border_radius;
 mod check_builtin_shadowing;
 mod check_drag_area;
+mod border_width;
 mod check_expressions;
 mod check_public_api;
 mod clip;
@@ -162,6 +163,7 @@ pub async fn run_passes(
 
     doc.visit_all_used_components(|component| {
         border_radius::handle_border_radius(component, diag);
+        border_width::handle_border_width(component, diag);
         check_drag_area::check_drag_area(component, diag);
         deprecated_rotation_origin::handle_rotation_origin(component, diag);
         flickable::handle_flickable(component, &global_type_registry.borrow());
