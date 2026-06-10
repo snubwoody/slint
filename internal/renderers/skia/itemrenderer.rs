@@ -1231,10 +1231,12 @@ pub fn from_skia_rect(rect: &skia_safe::Rect) -> PhysicalRect {
     euclid::Box2D::new(top_left, bottom_right).to_rect()
 }
 
+// DOC: might need to override here
 pub fn to_skia_rect(rect: &PhysicalRect) -> skia_safe::Rect {
     skia_safe::Rect::from_xywh(rect.origin.x, rect.origin.y, rect.size.width, rect.size.height)
 }
 
+// DOC: might need to override here
 pub fn to_skia_rrect(rect: &PhysicalRect, radius: &PhysicalBorderRadius) -> skia_safe::RRect {
     if let Some(radius) = radius.as_uniform() {
         skia_safe::RRect::new_rect_xy(to_skia_rect(rect), radius, radius)

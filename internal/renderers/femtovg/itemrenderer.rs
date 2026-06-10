@@ -147,8 +147,13 @@ fn adjust_rect_and_border_for_inner_drawing(
     *border_width = border_width.min(rect.width_length() / 2.);
     // adjust the size so that the border is drawn within the geometry
 
-    rect.origin += PhysicalSize::from_lengths(*border_width / 2., *border_width / 2.);
-    rect.size -= PhysicalSize::from_lengths(*border_width, *border_width);
+    let border_left_width = PhysicalLength::new(border_width.0);
+    let border_top_width = PhysicalLength::new(border_width.0);
+    let border_right_width = PhysicalLength::new(border_width.0);
+    let border_bottom_width = PhysicalLength::new(border_width.0);
+    // DOC: maybe in adjust the origin by left and top, then size by right and bottom
+    rect.origin += PhysicalSize::from_lengths(border_left_width / 2., border_top_width / 2.);
+    rect.size -= PhysicalSize::from_lengths(border_right_width, border_bottom_width);
 }
 
 fn path_bounding_box<R: femtovg::Renderer>(
@@ -273,14 +278,18 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
 
             (rect_with_radius_to_path(geometry, stroke_border_radius), None)
         } else {
+            // DOC: background path don't touch this
             let background_path = rect_with_radius_to_path(geometry, fill_radius);
 
             // In CSS the border is entirely towards the inside of the boundary
             // geometry, while in femtovg the line with for a stroke is 50% in-
             // and 50% outwards. We choose the CSS model, so the inner rectangle
             // is adjusted accordingly.
+
+            // DOC: need to override this
             adjust_rect_and_border_for_inner_drawing(&mut geometry, &mut border_width);
 
+            // DOC: probably main thing
             let border_path = rect_with_radius_to_path(geometry, stroke_border_radius);
 
             (background_path, Some(border_path))
@@ -302,6 +311,7 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
         if let Some(paint) = fill_paint {
             canvas.fill_path(&background_path, &paint);
         }
+        // DOC: might need to stroke paths individually
         if let Some(border_paint) = border_paint {
             canvas.stroke_path(
                 maybe_border_path.as_mut().unwrap_or(&mut background_path),
