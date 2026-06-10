@@ -164,8 +164,14 @@ pub struct DrawRectangleArgs {
     /// The bottom-left radius.
     pub bottom_left_radius: f32,
 
-    /// The width of the border.
-    pub border_width: f32,
+    /// The width of the top border.
+    pub border_top_width: f32,
+    /// The width of the right border.
+    pub border_right_width: f32,
+    /// The width of the bottom border.
+    pub border_bottom_width: f32,
+    /// The width of the left border.
+    pub border_left_width: f32,
 
     /// The background of the rectangle
     pub background: Brush,

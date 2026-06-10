@@ -43,8 +43,8 @@ use i_slint_core::item_rendering::{
 use i_slint_core::item_tree::ItemTreeWeak;
 use i_slint_core::items::{ItemRc, TextOverflow, TextWrap};
 use i_slint_core::lengths::{
-    LogicalBorderRadius, LogicalLength, LogicalPoint, LogicalRect, LogicalSize, LogicalVector,
-    PhysicalPx, PointLengths, RectLengths, ScaleFactor, SizeLengths,
+    LogicalBorderRadius, LogicalBorderWidth, LogicalLength, LogicalPoint, LogicalRect, LogicalSize,
+    LogicalVector, PhysicalPx, PointLengths, RectLengths, ScaleFactor, SizeLengths,
 };
 use i_slint_core::partial_renderer::{DirtyRegion, PartialRenderingState};
 use i_slint_core::renderer::RendererSealed;
@@ -1786,8 +1786,10 @@ fn process_rectangle_impl(
 
     let mut border_color =
         PremultipliedRgbaColor::from(alpha_color(args.border.color(), args.alpha));
+    // DOC: FIXME: will need to override this
     let color = PremultipliedRgbaColor::from(color);
-    let mut border = PhysicalLength::new(args.border_width as _);
+    // let mut border = PhysicalLength::new(args.border_width as _);
+    let mut border = PhysicalLength::new(1.0 as _);
     if border_color.alpha == 0 {
         border = PhysicalLength::new(0);
     } else if border_color.alpha < 255 {
@@ -1845,6 +1847,7 @@ fn process_rectangle_impl(
         processor.process_simple_rectangle(r, color);
     }
 
+    // DOC: HERE: might need to override
     if border_color.alpha > 0 {
         let mut add_border = |r: PhysicalRect| {
             if let Some(r) = r.intersection(clip) {
@@ -2724,9 +2727,11 @@ impl<T: ProcessScene> i_slint_core::item_rendering::ItemRenderer for SceneBuilde
                 .min(BorderRadius::from_length(geom.width_length() / 2.))
                 .min(BorderRadius::from_length(geom.height_length() / 2.));
 
-            let border = rect.border_width().cast() * self.scale_factor;
-            let border_color =
-                if border.get() > 0.01 { rect.border_color() } else { Default::default() };
+            // DOC: FIXME: changed this
+            let border_width = rect.border_width() * self.scale_factor;
+            // let border = rect.border_width().cast() * self.scale_factor;
+            // let border_color =
+            //     if border.get() > 0.01 { rect.border_color() } else { Default::default() };
 
             let args = target_pixel_buffer::DrawRectangleArgs {
                 x: geom.origin.x,
@@ -2737,9 +2742,13 @@ impl<T: ProcessScene> i_slint_core::item_rendering::ItemRenderer for SceneBuilde
                 top_right_radius: radius.top_right,
                 bottom_right_radius: radius.bottom_right,
                 bottom_left_radius: radius.bottom_left,
-                border_width: border.get(),
+                border_top_width: border_width.top,
+                border_left_width: border_width.left,
+                border_right_width: border_width.right,
+                border_bottom_width: border_width.bottom,
                 background: rect.background(),
-                border: border_color,
+                // DOC: FIXME:
+                border: Default::default(),
                 alpha: (self.current_state.alpha * 255.) as u8,
                 rotation: self.rotation.orientation,
             };
@@ -3180,7 +3189,7 @@ impl<T: ProcessScene> i_slint_core::item_rendering::ItemRenderer for SceneBuilde
         &mut self,
         other: LogicalRect,
         _radius: LogicalBorderRadius,
-        _border_width: LogicalLength,
+        _border_width: LogicalBorderWidth,
     ) -> bool {
         match self.current_state.clip.intersection(&other) {
             Some(r) => {
