@@ -142,18 +142,23 @@ fn rect_to_path(r: PhysicalRect) -> femtovg::Path {
 fn adjust_rect_and_border_for_inner_drawing(
     rect: &mut PhysicalRect,
     border_width: &mut PhysicalLength,
+    border_top_width: &mut PhysicalLength,
+    border_right_width: &mut PhysicalLength,
+    border_bottom_width: &mut PhysicalLength,
+    border_left_width: &mut PhysicalLength,
 ) {
     // If the border width exceeds the width, just fill the rectangle.
     *border_width = border_width.min(rect.width_length() / 2.);
+    // DOC: new
+    *border_top_width = border_top_width.min(rect.width_length() / 2.);
+    *border_right_width = border_right_width.min(rect.width_length() / 2.);
+    *border_bottom_width = border_bottom_width.min(rect.width_length() / 2.);
+    *border_left_width = border_left_width.min(rect.width_length() / 2.);
     // adjust the size so that the border is drawn within the geometry
 
-    let border_left_width = PhysicalLength::new(border_width.0);
-    let border_top_width = PhysicalLength::new(border_width.0);
-    let border_right_width = PhysicalLength::new(border_width.0);
-    let border_bottom_width = PhysicalLength::new(border_width.0);
     // DOC: maybe in adjust the origin by left and top, then size by right and bottom
-    rect.origin += PhysicalSize::from_lengths(border_left_width / 2., border_top_width / 2.);
-    rect.size -= PhysicalSize::from_lengths(border_right_width, border_bottom_width);
+    rect.origin += PhysicalSize::from_lengths(*border_left_width / 2., *border_top_width / 2.);
+    rect.size -= PhysicalSize::from_lengths(*border_right_width, *border_bottom_width);
 }
 
 fn path_bounding_box<R: femtovg::Renderer>(
@@ -189,11 +194,23 @@ fn clip_path_for_rect_alike_item(
     border_width *= 2.;
 
     // Convert from logical to physical pixels
-    let mut border_width = border_width * scale_factor;
+    // DOC: FIXME: changed this
+    let mut new_border_width = border_width * scale_factor;
+    let mut border_top_width = border_width * scale_factor;
+    let mut border_right_width = border_width * scale_factor;
+    let mut border_left_width = border_width * scale_factor;
+    let mut border_bottom_width = border_width * scale_factor;
     let radius = radius * scale_factor;
     let mut clip_rect = clip_rect * scale_factor;
 
-    adjust_rect_and_border_for_inner_drawing(&mut clip_rect, &mut border_width);
+    adjust_rect_and_border_for_inner_drawing(
+        &mut clip_rect,
+        &mut new_border_width,
+        &mut border_top_width,
+        &mut border_right_width,
+        &mut border_bottom_width,
+        &mut border_left_width,
+    );
 
     rect_with_radius_to_path(clip_rect, radius)
 }
@@ -252,11 +269,29 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
 
         let border_color = rect.border_color();
         let opaque_border = border_color.is_opaque();
-        let mut border_width = if border_color.is_transparent() {
-            PhysicalLength::new(0.)
-        } else {
-            rect.border_width() * self.scale_factor
+        let mut border_width = PhysicalLength::new(0.0);
+        // FIXME: multiply by scale factor
+        let mut border_top_width = match border_color.is_transparent() {
+            true => PhysicalLength::new(0.0),
+            false => PhysicalLength::new(rect.border_width().top),
         };
+        let mut border_right_width = match border_color.is_transparent() {
+            true => PhysicalLength::new(0.0),
+            false => PhysicalLength::new(rect.border_width().right),
+        };
+        let mut border_bottom_width = match border_color.is_transparent() {
+            true => PhysicalLength::new(0.0),
+            false => PhysicalLength::new(rect.border_width().bottom),
+        };
+        let mut border_left_width = match border_color.is_transparent() {
+            true => PhysicalLength::new(0.0),
+            false => PhysicalLength::new(rect.border_width().left),
+        };
+        // let mut border_width = if border_color.is_transparent() {
+        //     PhysicalLength::new(0.)
+        // } else {
+        //     rect.border_width() * self.scale_factor
+        // };
 
         // Radius of rounded rect if we were to just fill the rectangle, without a border.
         let mut fill_radius = rect.border_radius() * self.scale_factor;
@@ -274,7 +309,14 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
             // geometry, while in femtovg the line with for a stroke is 50% in-
             // and 50% outwards. We choose the CSS model, so the inner rectangle
             // is adjusted accordingly.
-            adjust_rect_and_border_for_inner_drawing(&mut geometry, &mut border_width);
+            adjust_rect_and_border_for_inner_drawing(
+                &mut geometry,
+                &mut border_width,
+                &mut border_top_width,
+                &mut border_right_width,
+                &mut border_bottom_width,
+                &mut border_left_width,
+            );
 
             (rect_with_radius_to_path(geometry, stroke_border_radius), None)
         } else {
@@ -287,7 +329,14 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
             // is adjusted accordingly.
 
             // DOC: need to override this
-            adjust_rect_and_border_for_inner_drawing(&mut geometry, &mut border_width);
+            adjust_rect_and_border_for_inner_drawing(
+                &mut geometry,
+                &mut border_width,
+                &mut border_top_width,
+                &mut border_right_width,
+                &mut border_bottom_width,
+                &mut border_left_width,
+            );
 
             // DOC: probably main thing
             let border_path = rect_with_radius_to_path(geometry, stroke_border_radius);
@@ -311,6 +360,8 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
         if let Some(paint) = fill_paint {
             canvas.fill_path(&background_path, &paint);
         }
+        // DOC: might need to add support in the LSP
+        // DOC: try testing femtovg renderer without running examples
         // DOC: might need to stroke paths individually
         if let Some(border_paint) = border_paint {
             canvas.stroke_path(
