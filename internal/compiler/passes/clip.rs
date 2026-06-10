@@ -85,7 +85,30 @@ fn create_clip_element(parent_elem: &ElementRc, native_clip: &Rc<NativeClass>) {
         })
         .collect();
 
-    copy_optional_binding(parent_elem, "border-width", &clip);
+    // DOC: commented out
+    // copy_optional_binding(parent_elem, "border-width", &clip);
+    if super::border_width::BORDER_WIDTH_PROPERTIES
+        .iter()
+        .any(|property_name| parent_elem.borrow().is_binding_set(property_name, true))
+    {
+        for optional_binding in super::border_width::BORDER_WIDTH_PROPERTIES.iter() {
+            copy_optional_binding(parent_elem, optional_binding, &clip)
+        }
+    } else if parent_elem.borrow().bindings.contains_key("border-width") {
+        for prop in super::border_width::BORDER_WIDTH_PROPERTIES.iter() {
+            clip.borrow_mut().bindings.insert(
+                SmolStr::new(prop),
+                RefCell::new(
+                    Expression::PropertyReference(NamedReference::new(
+                        parent_elem,
+                        SmolStr::new_static("border-width"),
+                    ))
+                    .into(),
+                ),
+            );
+        }
+    }
+
     if super::border_radius::BORDER_RADIUS_PROPERTIES
         .iter()
         .any(|property_name| parent_elem.borrow().is_binding_set(property_name, true))
@@ -107,6 +130,7 @@ fn create_clip_element(parent_elem: &ElementRc, native_clip: &Rc<NativeClass>) {
             );
         }
     }
+
     clip.borrow_mut().bindings.insert(
         SmolStr::new_static("clip"),
         BindingExpression::new_two_way(
