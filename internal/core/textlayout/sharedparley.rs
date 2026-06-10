@@ -6,6 +6,7 @@ pub use parley;
 pub use parley::fontique;
 
 use crate::item_rendering::HasFont;
+use crate::lengths::LogicalBorderWidth;
 use crate::{
     Color,
     graphics::FontRequest,
@@ -1572,7 +1573,7 @@ pub fn draw_text(
         item_renderer.combine_clip(
             LogicalRect::new(LogicalPoint::default(), size),
             LogicalBorderRadius::zero(),
-            LogicalLength::zero(),
+            LogicalBorderWidth::new_uniform(0.0),
         )
     } else {
         true
@@ -1769,7 +1770,8 @@ pub fn draw_text_input(
     let render = item_renderer.combine_clip(
         LogicalRect::new(LogicalPoint::default(), size),
         LogicalBorderRadius::zero(),
-        LogicalLength::zero(),
+        // DOC: FIXME: impl Zero
+        LogicalBorderWidth::new_uniform(0.0),
     );
 
     if render {

@@ -525,11 +525,12 @@ pub trait ItemRenderer {
         _item_rc: &ItemRc,
         size: LogicalSize,
     ) -> RenderingResult {
+        // DOC: TODO: add a Border helper type at end
         if clip_item.clip() {
             let clip_region_valid = self.combine_clip(
                 LogicalRect::new(LogicalPoint::default(), size),
                 clip_item.logical_border_radius(),
-                clip_item.border_width(),
+                clip_item.logical_border_width(),
             );
 
             // If clipping is enabled but the clip element is outside the visible range, then we don't

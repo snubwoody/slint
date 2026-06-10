@@ -21,7 +21,8 @@ use crate::item_rendering::CachedRenderingData;
 use crate::items::ImageFit;
 use crate::layout::{LayoutInfo, Orientation};
 use crate::lengths::{
-    LogicalBorderRadius, LogicalLength, LogicalRect, LogicalSize, LogicalVector, RectLengths,
+    LogicalBorderRadius, LogicalBorderWidth, LogicalLength, LogicalRect, LogicalSize,
+    LogicalVector, RectLengths,
 };
 #[cfg(feature = "rtti")]
 use crate::rtti::*;
@@ -130,7 +131,7 @@ impl Item for Path {
             (*backend).combine_clip(
                 size.into(),
                 LogicalBorderRadius::zero(),
-                LogicalLength::zero(),
+                LogicalBorderWidth::new_uniform(0.0),
             );
         }
         (*backend).draw_path(self, self_rc, size);

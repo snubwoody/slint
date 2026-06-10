@@ -736,7 +736,10 @@ pub struct Clip {
     pub border_top_right_radius: Property<LogicalLength>,
     pub border_bottom_left_radius: Property<LogicalLength>,
     pub border_bottom_right_radius: Property<LogicalLength>,
-    pub border_width: Property<LogicalLength>,
+    pub border_top_width: Property<LogicalLength>,
+    pub border_right_width: Property<LogicalLength>,
+    pub border_bottom_width: Property<LogicalLength>,
+    pub border_left_width: Property<LogicalLength>,
     pub cached_rendering_data: CachedRenderingData,
     pub clip: Property<bool>,
     pub is_visibility_clip: Property<bool>,
@@ -845,6 +848,15 @@ impl Clip {
             self.border_top_right_radius(),
             self.border_bottom_right_radius(),
             self.border_bottom_left_radius(),
+        )
+    }
+
+    pub fn logical_border_width(self: Pin<&Self>) -> LogicalBorderWidth {
+        LogicalBorderWidth::from_lengths(
+            self.border_top_width(),
+            self.border_right_width(),
+            self.border_bottom_width(),
+            self.border_left_width(),
         )
     }
 }

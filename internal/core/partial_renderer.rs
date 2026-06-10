@@ -25,7 +25,7 @@ use crate::item_tree::{ItemTreeRc, ItemTreeWeak, ItemVisitorResult};
 use crate::items::Path;
 use crate::items::{BoxShadow, Clip, ItemRc, ItemRef, Layer, Opacity, RenderingResult, TextInput};
 use crate::lengths::{
-    ItemTransform, LogicalBorderRadius, LogicalLength, LogicalPoint, LogicalPx, LogicalRect,
+    ItemTransform, LogicalBorderRadius, LogicalBorderWidth, LogicalPoint, LogicalPx, LogicalRect,
     LogicalSize, LogicalVector,
 };
 use crate::properties::PropertyTracker;
@@ -687,7 +687,7 @@ impl<T: ItemRenderer + ItemRendererFeatures> ItemRenderer for PartialRenderer<'_
         &mut self,
         rect: LogicalRect,
         radius: LogicalBorderRadius,
-        border_width: LogicalLength,
+        border_width: LogicalBorderWidth,
     ) -> bool {
         self.actual_renderer.combine_clip(rect, radius, border_width)
     }

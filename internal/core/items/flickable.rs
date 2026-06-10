@@ -19,8 +19,8 @@ use crate::input::{
 use crate::item_rendering::CachedRenderingData;
 use crate::layout::{LayoutInfo, Orientation};
 use crate::lengths::{
-    LogicalBorderRadius, LogicalLength, LogicalPoint, LogicalRect, LogicalSize, LogicalVector,
-    PointLengths, RectLengths,
+    LogicalBorderRadius, LogicalBorderWidth, LogicalLength, LogicalPoint, LogicalRect, LogicalSize,
+    LogicalVector, PointLengths, RectLengths,
 };
 #[cfg(feature = "rtti")]
 use crate::rtti::*;
@@ -220,7 +220,7 @@ impl Item for Flickable {
         (*backend).combine_clip(
             LogicalRect::new(LogicalPoint::default(), size),
             LogicalBorderRadius::zero(),
-            LogicalLength::zero(),
+            LogicalBorderWidth::new_uniform(0.0),
         );
         RenderingResult::ContinueRenderingChildren
     }
