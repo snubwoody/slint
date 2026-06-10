@@ -97,6 +97,9 @@ pub use graphics::PathData;
 pub use graphics::BorderRadius;
 
 #[doc(inline)]
+pub use graphics::BorderWidth;
+
+#[doc(inline)]
 pub use data_transfer::DataTransfer;
 
 pub use context::{SlintContext, SlintContextWeak, with_global_context};

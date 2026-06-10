@@ -200,6 +200,7 @@ impl<T, U> BorderRadius<T, U> {
     where
         T: Copy + PartialOrd + Sub<T, Output = T> + Zero,
     {
+        // DOC: TODO: might need to pass the individual border widths
         BorderRadius::new(
             self.top_left - half_border_width.0,
             self.top_right - half_border_width.0,

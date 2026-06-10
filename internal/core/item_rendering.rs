@@ -9,7 +9,8 @@ use crate::graphics::{Color, FontRequest, Image, IntRect};
 use crate::item_tree::ItemTreeRc;
 use crate::item_tree::{ItemVisitor, ItemVisitorVTable, VisitChildrenResult};
 use crate::lengths::{
-    LogicalBorderRadius, LogicalLength, LogicalPoint, LogicalRect, LogicalSize, LogicalVector,
+    LogicalBorderRadius, LogicalBorderWidth, LogicalLength, LogicalPoint, LogicalRect, LogicalSize,
+    LogicalVector,
 };
 pub use crate::partial_renderer::CachedRenderingData;
 use crate::window::WindowAdapterRc;
@@ -549,7 +550,7 @@ pub trait ItemRenderer {
         &mut self,
         rect: LogicalRect,
         radius: LogicalBorderRadius,
-        border_width: LogicalLength,
+        border_width: LogicalBorderWidth,
     ) -> bool;
     /// Get the current clip bounding box in the current transformed coordinate.
     fn get_current_clip(&self) -> LogicalRect;
