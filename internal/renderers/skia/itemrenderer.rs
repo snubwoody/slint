@@ -16,12 +16,13 @@ use i_slint_core::item_rendering::{
 };
 use i_slint_core::items::{ImageFit, ImageRendering, ItemRc, Layer, Opacity, RenderingResult};
 use i_slint_core::lengths::{
-    LogicalBorderRadius, LogicalLength, LogicalPoint, LogicalPx, LogicalRect, LogicalSize,
-    LogicalVector, PhysicalPx, RectLengths, ScaleFactor, SizeLengths, logical_size_from_api,
+    LogicalBorderRadius, LogicalBorderWidth, LogicalLength, LogicalPoint, LogicalPx, LogicalRect,
+    LogicalSize, LogicalVector, PhysicalBorderWidth, PhysicalPx, RectLengths, ScaleFactor,
+    SizeLengths, logical_size_from_api,
 };
 use i_slint_core::textlayout::sharedparley::{self, GlyphRenderer, fontique};
 use i_slint_core::window::WindowInner;
-use i_slint_core::{Brush, Color, SharedString};
+use i_slint_core::{BorderWidth, Brush, Color, SharedString};
 use skia_safe::{Matrix, TileMode};
 
 pub type SkiaBoxShadowCache = BoxShadowCache<skia_safe::Image>;
@@ -591,7 +592,7 @@ impl ItemRenderer for SkiaItemRenderer<'_> {
         let border_color = rect.border_color();
         let opaque_border = border_color.is_opaque();
         let mut border_width = if border_color.is_transparent() {
-            PhysicalLength::new(0.)
+            PhysicalBorderWidth::new_uniform(0.0)
         } else {
             rect.border_width() * self.scale_factor
         };
@@ -600,8 +601,9 @@ impl ItemRenderer for SkiaItemRenderer<'_> {
         let mut fill_radius = rect.border_radius() * self.scale_factor;
         // Skia's border radius on stroke is in the middle of the border. But we want it to be the radius of the rectangle itself.
         // This is incorrect if fill_radius < border_width/2, but this can't be fixed. Better to have a radius a bit too big than no radius at all
-        fill_radius = fill_radius.outer(border_width / 2. + PhysicalLength::new(0.01));
-        let stroke_border_radius = fill_radius.inner(border_width / 2.);
+        // DOC: FIXME: might need to override this
+        fill_radius = fill_radius.outer(border_width.left / 2. + PhysicalLength::new(0.01));
+        let stroke_border_radius = fill_radius.inner(border_width.left.into() / 2.);
 
         let (background_rect, border_rect) = if opaque_border {
             // In CSS the border is entirely towards the inside of the boundary
@@ -880,7 +882,7 @@ impl ItemRenderer for SkiaItemRenderer<'_> {
         &mut self,
         rect: LogicalRect,
         radius: LogicalBorderRadius,
-        border_width: LogicalLength,
+        border_width: LogicalBorderWidth,
     ) -> bool {
         let mut rect = rect * self.scale_factor;
         let mut border_width = border_width * self.scale_factor;
@@ -1269,14 +1271,19 @@ pub fn to_skia_color(col: &Color) -> skia_safe::Color {
     skia_safe::Color::from_argb(col.alpha(), col.red(), col.green(), col.blue())
 }
 
-fn adjust_rect_and_border_for_inner_drawing(
+// DOC: might need generics
+fn adjust_rect_and_border_for_inner_drawing<U>(
     rect: &mut PhysicalRect,
-    border_width: &mut PhysicalLength,
+    border_width: &mut PhysicalBorderWidth,
 ) {
+    // DOC: TODO: should this PhysicalBorderWidth?
+    // DOC: FIXME: impl min and max
+    // *border_width.top = border_width.top.mi
     // If the border width exceeds the width, just fill the rectangle.
-    *border_width = border_width.min(rect.width_length() / 2.);
-    // adjust the size so that the border is drawn within the geometry
+    // *border_width = border_width.min(rect.width_length() / 2.);
 
-    rect.origin += PhysicalSize::from_lengths(*border_width / 2., *border_width / 2.);
-    rect.size -= PhysicalSize::from_lengths(*border_width, *border_width);
+    // adjust the size so that the border is drawn within the geometry
+    rect.origin +=
+        PhysicalSize::from_lengths(border_width.top.into() / 2., border_width.left.into() / 2.);
+    rect.size -= PhysicalSize::from_lengths(border_width.bottom.into(), *border_width.right.into());
 }
