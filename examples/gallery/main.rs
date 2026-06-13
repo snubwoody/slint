@@ -3,6 +3,7 @@
 
 #![deny(unsafe_code)]
 
+use std::env;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -76,6 +77,10 @@ pub fn main() {
     // For native builds, initialize gettext translations
     #[cfg(not(target_arch = "wasm32"))]
     slint::init_translations!(concat!(env!("CARGO_MANIFEST_DIR"), "/lang/"));
+    #[allow(unsafe_code)]
+    unsafe {
+        env::set_var("SLINT_BACKEND", "winit-skia");
+    }
 
     let app = App::new().unwrap();
 

@@ -16,7 +16,7 @@ path = "main.rs"
 name = "gallery"
 
 [dependencies]
-slint = { path = "../../api/rs/slint", features = ["gettext"] }
+slint = { path = "../../api/rs/slint", features = ["gettext","renderer-skia"] }
 
 [build-dependencies]
 slint-build = { path = "../../api/rs/build" }
