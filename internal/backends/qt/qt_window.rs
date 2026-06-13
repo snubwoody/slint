@@ -823,6 +823,7 @@ macro_rules! check_geometry {
     }};
 }
 
+// DOC: need to override here
 fn adjust_rect_and_border_for_inner_drawing(rect: &mut qttypes::QRectF, border_width: &mut f32) {
     // If the border width exceeds the width, just fill the rectangle.
     *border_width = border_width.min((rect.width as f32) / 2.);
@@ -1831,6 +1832,7 @@ impl QtItemRenderer<'_> {
         }
     }
 
+    // DOC: need to override here
     fn draw_rectangle_impl(
         painter: &mut QPainterPtr,
         mut rect: qttypes::QRectF,
