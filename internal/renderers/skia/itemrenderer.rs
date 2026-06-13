@@ -641,17 +641,17 @@ impl ItemRenderer for SkiaItemRenderer<'_> {
         }
 
         // DOC: might need to use path
-        if !border_width.is_zero()
-            && let Some(mut border_paint) =
-                self.brush_to_paint(border_color, original_width, original_height)
-        {
-            border_paint.set_style(skia_safe::PaintStyle::Stroke);
-            border_paint.set_stroke_width(2.0);
-            if !border_rect.is_rect() {
-                border_paint.set_anti_alias(true);
-            }
-            self.canvas.draw_rrect(border_rect, &border_paint);
-        }
+        // if !border_width.is_zero()
+        //     && let Some(mut border_paint) =
+        //         self.brush_to_paint(border_color, original_width, original_height)
+        // {
+        //     border_paint.set_style(skia_safe::PaintStyle::Stroke);
+        //     border_paint.set_stroke_width(20.0);
+        //     if !border_rect.is_rect() {
+        //         border_paint.set_anti_alias(true);
+        //     }
+        //     self.canvas.draw_rrect(border_rect, &border_paint);
+        // }
     }
 
     fn draw_window_background(
