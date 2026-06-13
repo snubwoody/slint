@@ -84,6 +84,7 @@ struct State {
     current_render_target: femtovg::RenderTarget,
 }
 
+// DOC: TODO: check for Vulkan or other renderers
 pub struct GLItemRenderer<'a, R: femtovg::Renderer + TextureImporter> {
     graphics_cache: &'a ItemGraphicsCache<R>,
     layer_cache: &'a LayerCache<R>,
@@ -256,10 +257,8 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
 
         let border_color = rect.border_color();
         let opaque_border = border_color.is_opaque();
-        let mut border_width = PhysicalLength::new(0.0);
         let mut border_width = if border_color.is_transparent() {
-            // DOC: TODO: use zero()
-            PhysicalBorderWidth::new_uniform(0.0)
+            PhysicalBorderWidth::zero()
         } else {
             rect.border_width() * self.scale_factor
         };
@@ -267,6 +266,7 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
         // Radius of rounded rect if we were to just fill the rectangle, without a border.
         let mut fill_radius = rect.border_radius() * self.scale_factor;
 
+        // DOC: TODO: draw another path on top of the border
         // FemtoVG's border radius on stroke is in the middle of the border. But we want it to be the radius of the rectangle itself.
         // This is incorrect if fill_radius < border_width/2, but this can't be fixed. Better to have a radius a bit too big than no radius at all
         // DOC: FIXME
@@ -302,31 +302,185 @@ impl<'a, R: femtovg::Renderer + TextureImporter> ItemRenderer for GLItemRenderer
             (background_path, Some(border_path))
         };
 
-        let fill_paint = self.brush_to_paint(rect.background(), &background_path);
+        // TODO: border values should override empty individual values
 
-        let border_paint = self
+        let fill_paint = self.brush_to_paint(rect.background(), &background_path);
+        let mut canvas = self.canvas.borrow_mut();
+        if let Some(paint) = fill_paint {
+            canvas.fill_path(&background_path, &paint);
+        }
+        // DOC: TODO: if all sides are the same draw one stroke
+
+        let top_border_paint = self
+            .brush_to_paint(
+                rect.border_color(),
+                maybe_border_path.as_ref().unwrap_or(&background_path),
+            )
+            .map(|mut paint| {
+                paint.set_line_width(rect.border_width().top);
+                paint
+            });
+
+        let right_border_paint = self
             .brush_to_paint(
                 rect.border_color(),
                 maybe_border_path.as_ref().unwrap_or(&background_path),
             )
             .map(|mut paint| {
                 // DOC: this is it
-                // paint.set_line_width(border_width.get());
+                paint.set_line_width(rect.border_width().right);
                 paint
             });
 
-        let mut canvas = self.canvas.borrow_mut();
-        if let Some(paint) = fill_paint {
-            canvas.fill_path(&background_path, &paint);
-        }
+        let left_border_paint = self
+            .brush_to_paint(
+                rect.border_color(),
+                maybe_border_path.as_ref().unwrap_or(&background_path),
+            )
+            .map(|mut paint| {
+                // DOC: this is it
+                paint.set_line_width(rect.border_width().left);
+                paint
+            });
+
+        let bottom_border_paint = self
+            .brush_to_paint(
+                rect.border_color(),
+                maybe_border_path.as_ref().unwrap_or(&background_path),
+            )
+            .map(|mut paint| {
+                // DOC: this is it
+                paint.set_line_width(rect.border_width().bottom);
+                paint
+            });
+
+        // DOC: TODO: for rounded objects just draw a circle
+        // DOC: TODO: check layout engine
+        // DOC: TODO: check if top border is 0
+        // DOC: TODO: maybe fill path
+        // DOC: TODO: try drawing arc from half radius?
+
+        let x = geometry.origin.x;
+        let y = geometry.origin.y;
+        let width = geometry.size.width;
+        let height = geometry.size.height;
+
+        let half_width = width.abs() * 0.5;
+        let half_height = height.abs() * 0.5;
+
+        let rx_bl = fill_radius.bottom_left.min(half_width) * width.signum();
+        let ry_bl = fill_radius.bottom_left.min(half_height) * height.signum();
+
+        let rx_br = fill_radius.bottom_right.min(half_width) * width.signum();
+        let ry_br = fill_radius.bottom_right.min(half_height) * height.signum();
+
+        let rx_tr = fill_radius.top_right.min(half_width) * width.signum();
+        let ry_tr = fill_radius.top_right.min(half_height) * height.signum();
+
+        let rx_tl = fill_radius.top_left.min(half_width) * width.signum();
+        let ry_tl = fill_radius.top_left.min(half_height) * height.signum();
+
+        // DOC: TODO: if borders are the same width use a single stroke
+        // DOC: TODO: support the border widths in the lsp
+        // DOC: TODO: try different widths AND radii
+        // DOC: TODO: try extreme values? like a circle
+        // DOC: TODO: multiply by KAPPA
+        let mut top_border_path = femtovg::Path::new();
+        top_border_path.move_to(x, y + fill_radius.top_left);
+        top_border_path.bezier_to(
+            x,
+            y + fill_radius.top_left * 0.5,
+            x + fill_radius.top_left * 0.5,
+            y,
+            x + fill_radius.top_left,
+            y,
+        );
+        top_border_path.line_to(x + width - fill_radius.top_right, y);
+        top_border_path.bezier_to(
+            x + width - fill_radius.top_right * 0.5,
+            y,
+            x + width,
+            y + fill_radius.top_right * 0.5,
+            x + width,
+            y + fill_radius.top_right,
+        );
+
+        let mut right_border_path = femtovg::Path::new();
+        right_border_path.move_to(x + width - fill_radius.top_right, y);
+        right_border_path.bezier_to(
+            x + width - fill_radius.top_right * 0.5,
+            y,
+            x + width,
+            y + fill_radius.top_right * 0.5,
+            x + width,
+            y + fill_radius.top_right,
+        );
+        right_border_path.line_to(x + width, y + height - fill_radius.bottom_right);
+        right_border_path.bezier_to(
+            x + width,
+            y + height - fill_radius.bottom_right * 0.5,
+            x + width - fill_radius.bottom_right * 0.5,
+            y + height,
+            x + width - fill_radius.bottom_right,
+            y + height,
+        );
+
+        let mut bottom_border_path = femtovg::Path::new();
+        bottom_border_path.move_to(x + width, y + height - fill_radius.bottom_right);
+        bottom_border_path.bezier_to(
+            x + width,
+            y + height - fill_radius.bottom_right * 0.5,
+            x + width - fill_radius.bottom_right * 0.5,
+            y + height,
+            x + width - fill_radius.bottom_right,
+            y + height,
+        );
+        bottom_border_path.line_to(x + fill_radius.bottom_left, y + height);
+        bottom_border_path.bezier_to(
+            x + fill_radius.bottom_right * 0.5,
+            y + height,
+            x,
+            y + height - fill_radius.bottom_left * 0.5,
+            x,
+            y + height - fill_radius.bottom_left,
+        );
+
+        let mut left_border_path = femtovg::Path::new();
+        left_border_path.move_to(x + fill_radius.bottom_left, y + height);
+        left_border_path.bezier_to(
+            x,
+            y + height - fill_radius.bottom_left * 0.5,
+            x + fill_radius.bottom_left * 0.5,
+            y + height,
+            x,
+            y + height - fill_radius.bottom_left,
+        );
+        left_border_path.line_to(x, y + fill_radius.top_left);
+        left_border_path.bezier_to(
+            x + fill_radius.top_left * 0.5,
+            y,
+            x,
+            y + fill_radius.top_left * 0.5,
+            x + fill_radius.top_left,
+            y,
+        );
+
+        // DOC: test this?
+        // DOC: TODO: test very large and small border radii
         // DOC: might need to add support in the LSP
         // DOC: try testing femtovg renderer without running examples
-        // DOC: might need to stroke paths individually
-        if let Some(border_paint) = border_paint {
-            canvas.stroke_path(
-                maybe_border_path.as_mut().unwrap_or(&mut background_path),
-                &border_paint,
-            );
+
+        if let Some(border_paint) = top_border_paint {
+            canvas.stroke_path(&mut top_border_path, &border_paint);
+        }
+        if let Some(border_paint) = right_border_paint {
+            canvas.stroke_path(&mut right_border_path, &border_paint);
+        }
+        if let Some(border_paint) = left_border_paint {
+            canvas.stroke_path(&mut left_border_path, &border_paint);
+        }
+        if let Some(border_paint) = bottom_border_paint {
+            canvas.stroke_path(&mut bottom_border_path, &border_paint);
         }
     }
 
