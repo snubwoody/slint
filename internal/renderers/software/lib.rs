@@ -44,7 +44,8 @@ use i_slint_core::item_tree::ItemTreeWeak;
 use i_slint_core::items::{ItemRc, TextOverflow, TextWrap};
 use i_slint_core::lengths::{
     LogicalBorderRadius, LogicalBorderWidth, LogicalLength, LogicalPoint, LogicalRect, LogicalSize,
-    LogicalVector, PhysicalPx, PointLengths, RectLengths, ScaleFactor, SizeLengths,
+    LogicalVector, PhysicalBorderWidth, PhysicalPx, PointLengths, RectLengths, ScaleFactor,
+    SizeLengths,
 };
 use i_slint_core::partial_renderer::{DirtyRegion, PartialRenderingState};
 use i_slint_core::renderer::RendererSealed;
@@ -1644,6 +1645,7 @@ fn process_rectangle_impl(
     clip: &PhysicalRect,
     scale_factor: ScaleFactor,
 ) {
+    // DOC: impl border HERE
     let geom = args.geometry();
     let Some(clipped) = geom.intersection(&clip.cast()) else { return };
     let geom_w = geom.width();
@@ -1784,8 +1786,10 @@ fn process_rectangle_impl(
         alpha_color(args.background.color(), args.alpha)
     };
 
+    // DOC: TODO: implement clipping
     let mut border_color =
         PremultipliedRgbaColor::from(alpha_color(args.border.color(), args.alpha));
+
     // DOC: FIXME: will need to override this
     let color = PremultipliedRgbaColor::from(color);
     // let mut border = PhysicalLength::new(args.border_width as _);
@@ -1820,6 +1824,14 @@ fn process_rectangle_impl(
         _unit: Default::default(),
     };
 
+    let border_width = PhysicalBorderWidth {
+        top: args.border_top_width as _,
+        right: args.border_right_width as _,
+        bottom: args.border_bottom_width as _,
+        left: args.border_left_width as _,
+        _unit: Default::default(),
+    };
+
     if !radius.is_zero() {
         // Add a small value to make sure that the clip is always positive despite floating point shenanigans
         const E: f32 = 0.00001;
@@ -1828,7 +1840,7 @@ fn process_rectangle_impl(
             clipped.round().cast(),
             RoundedRectangle {
                 radius,
-                width: border,
+                width: border_width,
                 border_color,
                 inner_color: color,
                 top_clip: PhysicalLength::new((clipped.min_y() - geom.min_y() + E) as _),
@@ -3441,7 +3453,8 @@ impl<T: ProcessScene> sharedparley::GlyphRenderer for SceneBuilder<'_, T> {
             && border_width.get() > 0.0
             && border_color.alpha() > 0
         {
-            args.border_width = border_width.get();
+            // DOC: FIXME
+            // args.border_width = border_width.get();
             args.border = Brush::SolidColor(border_color);
         }
 

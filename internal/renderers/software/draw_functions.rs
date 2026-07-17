@@ -11,7 +11,7 @@ use super::{Fixed, PhysicalLength, PhysicalRect};
 use derive_more::{Add, Mul, Sub};
 use i_slint_core::Color;
 use i_slint_core::graphics::{Rgb8Pixel, TexturePixelFormat};
-use i_slint_core::lengths::{PointLengths, SizeLengths};
+use i_slint_core::lengths::{LogicalLength, PointLengths, SizeLengths};
 use integer_sqrt::IntegerSquareRoot;
 #[allow(unused_imports)]
 use num_traits::Float;
@@ -363,7 +363,9 @@ pub(super) fn draw_rounded_rectangle_line(
         - PhysicalLength::new(1);
     let y = y1.min(y2);
     debug_assert!(y.get() >= 0,);
-    let border = Shifted::new(rr.width.get());
+    // DOC: FIXME: commented out
+    // let border = Shifted::new(rr.width.get());
+    let border = Shifted::new(1);
     const ONE: Shifted = Shifted::ONE;
     const ZERO: Shifted = Shifted(0);
     let anti_alias = |x1: Shifted, x2: Shifted, process_pixel: &mut dyn FnMut(usize, u32)| {
@@ -435,7 +437,8 @@ pub(super) fn draw_rounded_rectangle_line(
             line_buffer[x].blend(col);
         },
     );
-    if y < rr.width {
+    // DOC: FIXME: edited
+    if y < PhysicalLength::new(0) {
         // up or down border (x2 .. x7)
         let l = x2
             .ceil()

@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 use euclid::Length;
 use i_slint_core::Color;
 use i_slint_core::graphics::{SharedImageBuffer, TexturePixelFormat};
-use i_slint_core::lengths::{PointLengths as _, SizeLengths as _};
+use i_slint_core::lengths::{PhysicalBorderWidth, PointLengths as _, SizeLengths as _};
 
 #[derive(Default)]
 pub struct SceneVectors {
@@ -515,7 +515,7 @@ pub fn compute_range_in_buffer(
 pub struct RoundedRectangle {
     pub radius: PhysicalBorderRadius,
     /// the border's width
-    pub width: PhysicalLength,
+    pub width: PhysicalBorderWidth,
     pub border_color: PremultipliedRgbaColor,
     pub inner_color: PremultipliedRgbaColor,
     /// The clips is the amount of pixels of the rounded rectangle that is clipped away.
