@@ -2441,14 +2441,10 @@ fn check_number_literal_is_positive_integer(
     }
 }
 
-fn recognized_layout_types() -> &'static [&'static str] {
-    &["Row", "GridLayout", "HorizontalLayout", "VerticalLayout", "FlexboxLayout", "Dialog"]
-}
-
 /// Checks that there are no layout specific properties used wrongly
 fn check_no_layout_properties(
     item: &ElementRc,
-    layout_type: &Option<SmolStr>,
+    _layout_type: &Option<SmolStr>,
     parent_layout_type: &Option<SmolStr>,
     diag: &mut BuildDiagnostics,
 ) {
@@ -2480,22 +2476,28 @@ fn check_no_layout_properties(
                 &*expr.borrow(),
             );
         }
-        if (layout_type.is_none()
-            || !recognized_layout_types().contains(&layout_type.as_ref().unwrap().as_str()))
-            && matches!(
-                prop.as_ref(),
-                "padding" | "padding-left" | "padding-right" | "padding-top" | "padding-bottom"
-            )
-            && !check_inherits_layout(item)
-        {
-            diag.push_warning(
-                format!("{prop} only has effect on layout elements"),
-                &*expr.borrow(),
-            );
-        }
+
+        // Removing this warning as there's currently no way to have custom padding
+        // properties on a component. If you use the default ones you get a warning,
+        // and you can't add your own because they already exist on every component.
+
+        // if (layout_type.is_none()
+        //     || !recognized_layout_types().contains(&layout_type.as_ref().unwrap().as_str()))
+        //     && matches!(
+        //         prop.as_ref(),
+        //         "padding" | "padding-left" | "padding-right" | "padding-top" | "padding-bottom"
+        //     )
+        //     && !check_inherits_layout(item)
+        // {
+        //     diag.push_warning(
+        //         format!("{prop} only has effect on layout elements"),
+        //         &*expr.borrow(),
+        //     );
+        // }
     }
 
     /// Check if the element inherits from a layout that was lowered
+    #[allow(unused)] // This was used above when checking for padding warnings
     fn check_inherits_layout(item: &ElementRc) -> bool {
         if let ElementType::Component(c) = &item.borrow().base_type {
             c.root_element.borrow().debug.iter().any(|d| d.layout.is_some())
