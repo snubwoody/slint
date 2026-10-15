@@ -122,6 +122,7 @@ impl<T: ComponentHandle> Sealed for T {}
 enum SingleElementMatch {
     MatchById { id: String, root_base: Option<String> },
     MatchByTypeName(String),
+    MatchByAccessibleLabel(String),
     MatchByTypeNameOrBase(String),
     MatchByAccessibleRole(crate::AccessibleRole),
     MatchByPredicate(Box<dyn Fn(&ElementHandle) -> bool>),
@@ -154,6 +155,9 @@ impl SingleElementMatch {
             }
             SingleElementMatch::MatchByAccessibleRole(role) => {
                 element.accessible_role() == Some(*role)
+            }
+            SingleElementMatch::MatchByAccessibleLabel(label) => {
+                element.accessible_label() == Some(label.into())
             }
             SingleElementMatch::MatchByPredicate(predicate) => (predicate)(element),
         }
@@ -276,6 +280,14 @@ impl ElementQuery {
     pub fn match_accessible_role(mut self, role: crate::AccessibleRole) -> Self {
         self.query_stack.push(ElementQueryInstruction::MatchSingleElement(
             SingleElementMatch::MatchByAccessibleRole(role),
+        ));
+        self
+    }
+
+    /// Include only elements in the results where [`ElementHandle::accessible_label()`] is equal to the provided `label`.
+    pub fn match_accessible_label(mut self, label: impl Into<String>) -> Self {
+        self.query_stack.push(ElementQueryInstruction::MatchSingleElement(
+            SingleElementMatch::MatchByAccessibleLabel(label.into()),
         ));
         self
     }
@@ -1295,6 +1307,7 @@ fn test_matches() {
 
     assert_eq!(root.query_descendants().match_id("App::visible-element").find_all().len(), 1);
     assert_eq!(root.query_descendants().match_id("App::inner-element").find_all().len(), 1);
+    assert_eq!(root.query_descendants().match_accessible_label("hello").find_all().len(), 1);
 
     assert_eq!(
         root.query_descendants()
