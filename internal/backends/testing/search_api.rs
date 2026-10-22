@@ -365,8 +365,10 @@ impl ElementHandle {
     ) -> Option<R> {
         let self_item = self.item.upgrade()?;
 
+        // TODO: probably here
         let visit_attached_popups =
             |item_rc: &ItemRc, visitor: &mut dyn FnMut(ElementHandle) -> ControlFlow<R>| {
+                dbg!("Visit attached popups");
                 for (popup_elem, popup_item_tree) in active_popups {
                     if popup_elem == item_rc
                         && let Some(result) = (ElementHandle {
@@ -1470,6 +1472,10 @@ fn test_popups() {
         .find_first()
         .unwrap()
         .invoke_accessible_default_action();
+
+    for element in root.query_descendants().find_all() {
+        dbg!(element.type_name());
+    }
 
     assert_eq!(
         root.query_descendants()
