@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 use smol_str::{SmolStr, format_smolstr};
 
+// DOC: here
 /// A counter, shared across the whole compilation: the
 /// [`crate::typeloader::TypeLoader`] holds it and hands a reference to the passes
 /// that generate names. Sharing it makes the names unique across all the

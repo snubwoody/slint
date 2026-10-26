@@ -94,7 +94,11 @@ fn expression_cost(exp: &Expression, ctx: &EvaluationContext) -> isize {
 }
 
 fn callback_cost(_callback: &crate::llr::MemberReference, _ctx: &EvaluationContext) -> isize {
+    // DOC: here
     // TODO: lookup the callback and find out what it does
+
+    // DOC: testing always inline (increases test time of some tests to 12s)
+    // 0
     isize::MAX
 }
 
