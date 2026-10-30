@@ -53,6 +53,8 @@ pub enum WindowKind {
     ToolTip,
     /// Popup Window
     Popup,
+    /// Dialog Window
+    Dialog,
     /// Popup Menu
     Menu,
 }
@@ -469,6 +471,7 @@ impl crate::properties::PropertyDirtyHandler for WindowPropertiesTracker {
     }
 }
 
+// DOC: here
 pub(crate) struct PopupWindowPropertiesTracker {
     /// Weak reference to the parent window that owns the active_popups list
     parent_window_adapter_weak: Weak<dyn WindowAdapter>,
@@ -515,6 +518,7 @@ pub enum PopupWindowLocation {
     ChildWindow(LogicalPoint),
 }
 
+// DOC: here
 /// This structure defines a graphical element that is designed to pop up from the surrounding
 /// UI content, for example to show a context menu.
 pub struct PopupWindow {
