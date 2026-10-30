@@ -55,6 +55,8 @@ pub enum BuiltinFunction {
     ClearFocusItem,
     ShowPopupWindow,
     ClosePopupWindow,
+    ShowDialogWindow,
+    CloseDialogWindow,
     /// Show a context popup menu.
     /// Arguments are `(parent, menu_tree, position)`
     ///
@@ -246,6 +248,8 @@ declare_builtin_function_types!(
     ClearFocusItem: (Type::ElementReference) -> Type::Void,
     ShowPopupWindow: (Type::ElementReference) -> Type::Void,
     ClosePopupWindow: (Type::ElementReference) -> Type::Void,
+    ShowDialogWindow: (Type::ElementReference) -> Type::Void,
+    CloseDialogWindow: (Type::ElementReference) -> Type::Void,
     ShowPopupMenu: (Type::ElementReference, Type::ElementReference, typeregister::logical_point_type().into()) -> Type::Void,
     ShowPopupMenuInternal: (Type::ElementReference, Type::Model, typeregister::logical_point_type().into()) -> Type::Void,
     SetSelectionOffsets: (Type::ElementReference, Type::Int32, Type::Int32) -> Type::Void,
@@ -410,7 +414,9 @@ impl BuiltinFunction {
             BuiltinFunction::ShowPopupWindow
             | BuiltinFunction::ClosePopupWindow
             | BuiltinFunction::ShowPopupMenu
-            | BuiltinFunction::ShowPopupMenuInternal => false,
+            | BuiltinFunction::ShowPopupMenuInternal
+            | BuiltinFunction::ShowDialogWindow
+            | BuiltinFunction::CloseDialogWindow => false,
             BuiltinFunction::SetSelectionOffsets => false,
             BuiltinFunction::ItemFontMetrics => false, // depends also on Window's font properties
             BuiltinFunction::StringIsEmpty
@@ -512,7 +518,9 @@ impl BuiltinFunction {
             BuiltinFunction::ShowPopupWindow
             | BuiltinFunction::ClosePopupWindow
             | BuiltinFunction::ShowPopupMenu
-            | BuiltinFunction::ShowPopupMenuInternal => false,
+            | BuiltinFunction::ShowPopupMenuInternal
+            | BuiltinFunction::ShowDialogWindow
+            | BuiltinFunction::CloseDialogWindow => false,
             BuiltinFunction::SetSelectionOffsets => false,
             BuiltinFunction::ItemFontMetrics => true,
             BuiltinFunction::StringToFloat

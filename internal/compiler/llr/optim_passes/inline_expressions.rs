@@ -130,7 +130,9 @@ fn builtin_function_cost(function: &BuiltinFunction) -> isize {
         BuiltinFunction::ShowPopupWindow
         | BuiltinFunction::ClosePopupWindow
         | BuiltinFunction::ShowPopupMenu
-        | BuiltinFunction::ShowPopupMenuInternal => isize::MAX,
+        | BuiltinFunction::ShowPopupMenuInternal
+        | BuiltinFunction::ShowDialogWindow
+        | BuiltinFunction::CloseDialogWindow => isize::MAX,
         BuiltinFunction::SetSelectionOffsets => isize::MAX,
         BuiltinFunction::ItemFontMetrics => PROPERTY_ACCESS_COST,
         BuiltinFunction::StringToFloat => 50,

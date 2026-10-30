@@ -3297,6 +3297,19 @@ fn build(l: &mut Loader) {
         }
     }
 
+    element! { // DOC: add docs later
+        DialogWindow {
+            in property <length> width;
+            in property <length> height;
+
+            out property <bool> is-open;
+            /// Show the dialog window.
+            function show() { BuiltinFunction.ShowDialogWindow }
+            /// Closes the dialog window.
+            function close() { BuiltinFunction.CloseDialogWindow }
+        }
+    }
+
     item! { TooltipArea: Empty {
         // Set when the mouse is over the parent's region while this area is expanded to fill it during lowering.
         out property <bool> has-hover;

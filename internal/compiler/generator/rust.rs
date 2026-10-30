@@ -4879,6 +4879,12 @@ fn compile_builtin_function_call(
                 }
             })
         }
+        BuiltinFunction::ShowDialogWindow => {
+            #[allow(unused)]
+            let window_kind = quote!(sp::WindowKind::Dialog);
+            todo!()
+        }
+        BuiltinFunction::CloseDialogWindow => todo!(),
         BuiltinFunction::SetSelectionOffsets => {
             if let [llr::Expression::PropertyReference(pr), anchor_expr, focus_expr] = arguments {
                 let window_adapter_tokens = access_window_adapter_field(ctx);
