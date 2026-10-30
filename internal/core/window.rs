@@ -814,6 +814,7 @@ impl WindowInner {
         crate::debug_log!("Slint: long callback/instantiation chain detected");
     }
 
+    // DOC: might need to keep track of the active dialogs.
     /// Returns a slice of the active popups.
     pub fn active_popups(&self) -> core::cell::Ref<'_, [PopupWindow]> {
         core::cell::Ref::map(self.active_popups.borrow(), |v| v.as_slice())
@@ -2016,6 +2017,20 @@ impl WindowInner {
             .and_then(|s| s.create_child_window_adapter(kind))
     }
 
+    /// Show a dialog.
+    pub fn show_dialog(&self, dialog_componentrc: &ItemTreeRc, parent_item: &ItemRc) -> NonZeroU32 {
+        // Dialogs (should) live in their own ItemTree, which was invisible to any
+        // earlier instantiation pass; materialize it before the layout queries below.
+        crate::item_tree::ensure_item_tree_instantiated(dialog_componentrc);
+        // TODO: get the position and size of the parent window, and place it in the center.
+
+        // Reuse the popup id counter for now, this might cause issues later on
+        let dialog_id = self.next_popup_id.get();
+        self.next_popup_id.set(dialog_id.checked_add(1).unwrap());
+        dialog_id
+    }
+
+    // DOC: might need show_dialog
     /// Show a popup at the given position relative to the `parent_item` and returns its ID.
     /// The returned ID will always be non-zero.
     ///

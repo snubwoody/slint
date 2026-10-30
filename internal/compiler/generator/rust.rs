@@ -4609,6 +4609,7 @@ fn compile_builtin_function_call(
                 } else {
                     quote!(sp::WindowKind::Popup)
                 };
+                // DOC: seems like window creation is here
                 let globals_init = quote! {
                     if let Some(popup_window_adapter) = window.create_child_window_adapter(#window_kind) {
                         shared_global.clone_with_window_adapter(popup_window_adapter)
@@ -4654,6 +4655,7 @@ fn compile_builtin_function_call(
                         // Use the newly created window adapter if we are able to create one. Otherwise use the parent's one
                         let shared_global = #compo.globals.get().unwrap();
                         let window_adapter = shared_global.window_adapter_impl();
+                        // DOC: window creation?
                         let window = sp::WindowInner::from_pub(window_adapter.window());
                         let globals = #globals_init;
 
@@ -4880,9 +4882,43 @@ fn compile_builtin_function_call(
             })
         }
         BuiltinFunction::ShowDialogWindow => {
-            #[allow(unused)]
-            let window_kind = quote!(sp::WindowKind::Dialog);
-            todo!()
+            dbg!(arguments);
+            if let [
+                Expression::NumberLiteral(popup_index),
+                Expression::PropertyReference(owner_ref),
+            ] = arguments
+            {
+                let mut component_access_tokens = MemberAccess::Direct(quote!(_self));
+                let llr::MemberReference::Relative { parent_level, local_reference } = owner_ref
+                else {
+                    unreachable!()
+                };
+
+                // DOC: it seems like we're accessing existing popup components
+                // instead I want to create a new window.
+                // - Get the window adapter, make the inner component the root
+                let mut current_sub_component = &ctx.compilation_unit.sub_components
+                    [ctx.parent_sub_component_idx(*parent_level).unwrap()];
+                let popup = &current_sub_component.popup_windows[*popup_index as usize];
+                // let popup = &ctx.compilation_unit.sub_components[parent_ctx.sub_component]
+                // .popup_windows[*popup_index as usize];
+                // let popup_window_id =
+                // inner_component_id(&ctx.compilation_unit.sub_components[popup.item_tree.root]);
+                // let parent_item = &#parent_item;
+                // let shared_global = #compo.globals.get().unwrap();
+                // let window_adapter = shared_global.window_adapter_impl();
+                // #[allow(unused)]
+                // let window_kind = quote!(sp::WindowKind::Dialog);
+                // let dialog_instance = #popup_window_id::new(#compo.self_weak.get().unwrap().clone(), globals).unwrap();
+
+                // let popup_id = window.show_dialog(
+                // &sp::VRc::into_dyn(dialog_instance.into()),
+                // parent_item,
+                // );
+                todo!()
+            } else {
+                panic!("internal error: invalid args to ShowDialogWindow {arguments:?}")
+            }
         }
         BuiltinFunction::CloseDialogWindow => todo!(),
         BuiltinFunction::SetSelectionOffsets => {

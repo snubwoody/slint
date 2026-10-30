@@ -630,6 +630,11 @@ pub struct PopupWindow {
 }
 
 #[derive(Debug)]
+pub struct DialogWindow {
+    pub item_tree: ItemTree,
+}
+
+#[derive(Debug)]
 pub struct PopupMenu {
     pub item_tree: ItemTree,
     pub sub_menu: MemberReference,
