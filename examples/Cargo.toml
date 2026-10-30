@@ -36,6 +36,7 @@ members = [
   'bevy/slint-hosts-bevy',
   'bevy/bevy-hosts-slint',
   'bevy/bevy-hosts-slint-gpu',
+  'dialog-window',
 ]
 
 # These keep their own workspace (custom MCU profile, no host build,

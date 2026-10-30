@@ -1,0 +1,31 @@
+// Copyright © SixtyFPS GmbH <info@slint.dev>
+// SPDX-License-Identifier: MIT
+
+
+import { Button } from "std-widgets.slint";
+export component MainWindow inherits Window {
+    title: "Native Gestures Demo";
+    preferred-width: 800px;
+    preferred-height: 600px;
+    background: #1a1a2e;
+
+    Button {
+        text: "Open dialog";
+        clicked => dialog.show();
+    }
+
+    Button {
+        text: "Open popup";
+        clicked => popup.show();
+    }
+
+    dialog := DialogWindow {
+        Text {
+            text: @tr("Hello");
+        }
+    }
+
+    popup := PopupWindow{
+
+    }
+}
