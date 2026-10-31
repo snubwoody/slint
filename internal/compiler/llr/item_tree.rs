@@ -535,6 +535,7 @@ pub struct SubComponent {
     pub items: TiVec<ItemInstanceIdx, Item>,
     pub repeated: TiVec<RepeatedElementIdx, RepeatedElement>,
     pub component_containers: Vec<ComponentContainerElement>,
+    pub dialog_windows: Vec<DialogWindow>,
     pub popup_windows: Vec<PopupWindow>,
     /// The MenuItem trees. The index is stored in a Expression::NumberLiteral in the arguments of BuiltinFunction::ShowPopupMenu and BuiltinFunction::SetupMenuBar
     pub menu_item_trees: Vec<ItemTree>,

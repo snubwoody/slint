@@ -312,6 +312,7 @@ mod visitor {
             repeated,
             component_containers: _,
             popup_windows,
+            dialog_windows: _,
             menu_item_trees: _,
             timers,
             sub_components: _,

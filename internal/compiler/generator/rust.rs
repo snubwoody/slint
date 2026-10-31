@@ -4566,6 +4566,7 @@ fn compile_builtin_function_call(
                 is_open_args @ ..,
             ] = arguments
             {
+                dbg!(&arguments); // DOC: remove later
                 let mut component_access_tokens = MemberAccess::Direct(quote!(_self));
                 let llr::MemberReference::Relative { parent_level, local_reference } = owner_ref
                 else {
@@ -4922,9 +4923,11 @@ fn compile_builtin_function_call(
                 // &sp::VRc::into_dyn(dialog_instance.into()),
                 // parent_item,
                 // );
-                todo!()
+                // todo!()
+                quote!()
             } else {
-                panic!("internal error: invalid args to ShowDialogWindow {arguments:?}")
+                quote!()
+                // panic!("internal error: invalid args to ShowDialogWindow {arguments:?}")
             }
         }
         BuiltinFunction::CloseDialogWindow => todo!(),

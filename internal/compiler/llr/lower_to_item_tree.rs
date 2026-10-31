@@ -372,6 +372,7 @@ fn lower_sub_component(
         repeated: Default::default(),
         component_containers: Default::default(),
         popup_windows: Default::default(),
+        dialog_windows: Default::default(),
         menu_item_trees: Vec::new(),
         timers: Default::default(),
         sub_components: Default::default(),
