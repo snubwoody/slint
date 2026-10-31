@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0
 
 export component Foo {
-    dialog := DialogWindow {
-        Rectangle { @children }
-    }
+//    dialog := DialogWindow {
+//        Rectangle { @children }
+//    }
+
+    if true: DialogWindow {}
+//           >           <error{DialogWindow cannot be directly repeated or conditional}
+    for i in [0]: DialogWindow {}
+//                >           <error{DialogWindow cannot be directly repeated or conditional}
 }

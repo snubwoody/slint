@@ -693,6 +693,7 @@ fn duplicate_sub_component(
         declared_slots: component_to_duplicate.declared_slots.clone(),
         init_code: component_to_duplicate.init_code.clone(),
         popup_windows: Default::default(),
+        dialog_windows: Default::default(),
         timers: component_to_duplicate.timers.clone(),
         menu_item_tree: Default::default(),
         exported_global_names: component_to_duplicate.exported_global_names.clone(),

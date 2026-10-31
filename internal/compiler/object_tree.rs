@@ -349,6 +349,12 @@ impl Document {
     }
 }
 
+#[derive(Debug)]
+pub struct DialogWindow {
+    pub component: Rc<Component>,
+    pub parent_element: ElementRc,
+}
+
 #[derive(Debug, Clone)]
 pub struct PopupWindow {
     pub component: Rc<Component>,
@@ -518,6 +524,7 @@ pub struct Component {
 
     pub init_code: RefCell<InitCode>,
 
+    pub dialog_windows: RefCell<Vec<DialogWindow>>,
     pub popup_windows: RefCell<Vec<PopupWindow>>,
     pub timers: RefCell<Vec<Timer>>,
     pub menu_item_tree: RefCell<Vec<Rc<Component>>>,
@@ -4235,6 +4242,11 @@ fn recurse_elem_including_sub_components_dyn<State>(
         .iter()
         .for_each(|p| recurse_elem_including_sub_components_dyn(&p.component, state, vis));
     component
+        .dialog_windows
+        .borrow()
+        .iter()
+        .for_each(|d| recurse_elem_including_sub_components_dyn(&d.component, state, vis));
+    component
         .menu_item_tree
         .borrow()
         .iter()
@@ -4298,6 +4310,9 @@ fn recurse_elem_including_sub_components_no_borrow_dyn<State>(
     });
     component.popup_windows.borrow().iter().for_each(|p| {
         recurse_elem_including_sub_components_no_borrow_dyn(&p.component, state, vis)
+    });
+    component.dialog_windows.borrow().iter().for_each(|d| {
+        recurse_elem_including_sub_components_no_borrow_dyn(&d.component, state, vis)
     });
     component
         .menu_item_tree
@@ -4595,6 +4610,7 @@ fn visit_all_named_references_dyn(component: &Component, vis: &mut dyn FnMut(&mu
             if !Weak::ptr_eq(parent_compo, &compo) {
                 let compo = compo.upgrade().unwrap();
                 compo.root_constraints.borrow_mut().visit_named_references(vis);
+                // DOC: visit here
                 compo.popup_windows.borrow_mut().iter_mut().for_each(|p| {
                     vis(&mut p.x);
                     vis(&mut p.y);

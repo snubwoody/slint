@@ -33,6 +33,7 @@ mod key_bindings;
 mod lower_absolute_coordinates;
 mod lower_accessibility;
 mod lower_component_container;
+mod lower_dialogs;
 pub(crate) mod lower_layout;
 mod lower_menus;
 mod lower_platform;
@@ -140,6 +141,7 @@ pub async fn run_passes(
         lower_text_input_interface::lower_text_input_interface(component);
         compile_paths::check_derived_paths(component, &doc.local_registry, diag);
         repeater_component::process_repeater_components(component);
+        lower_dialogs::lower_dialogs(component, &doc.local_registry, diag);
         lower_popups::lower_popups(component, &doc.local_registry, diag);
         collect_init_code::collect_init_code(component);
         lower_timers::lower_timers(component, diag);

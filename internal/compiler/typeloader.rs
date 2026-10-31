@@ -360,6 +360,14 @@ impl Snapshotter {
                     .map(|p| self.snapshot_popup_window(p))
                     .collect(),
             );
+            let dialog_windows = RefCell::new(
+                component
+                    .dialog_windows
+                    .borrow()
+                    .iter()
+                    .map(|d| self.snapshot_dialog_window(d))
+                    .collect(),
+            );
             let timers = RefCell::new(
                 component.timers.borrow().iter().map(|p| self.snapshot_timer(p)).collect(),
             );
@@ -387,6 +395,7 @@ impl Snapshotter {
                 optimized_elements,
                 parent_element: RefCell::new(parent_element),
                 popup_windows,
+                dialog_windows,
                 timers,
                 menu_item_tree,
                 private_properties: RefCell::new(component.private_properties.borrow().clone()),
@@ -693,6 +702,17 @@ impl Snapshotter {
             parent_element: self.use_element(&popup_window.parent_element),
             is_tooltip: popup_window.is_tooltip,
             is_open: popup_window.is_open.as_ref().map(|is_open| is_open.snapshot(self)),
+        }
+    }
+
+    fn snapshot_dialog_window(
+        &mut self,
+        dialog_window: &object_tree::DialogWindow,
+    ) -> object_tree::DialogWindow {
+        object_tree::DialogWindow {
+            component: Weak::upgrade(&self.use_component(&dialog_window.component))
+                .expect("Looking at a known component"),
+            parent_element: self.use_element(&dialog_window.parent_element),
         }
     }
 
