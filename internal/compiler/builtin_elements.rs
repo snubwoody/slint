@@ -3297,6 +3297,10 @@ fn build(l: &mut Loader) {
         }
     }
 
+    element! {
+        DialogWindow { }
+    }
+
     item! { TooltipArea: Empty {
         // Set when the mouse is over the parent's region while this area is expanded to fill it during lowering.
         out property <bool> has-hover;
