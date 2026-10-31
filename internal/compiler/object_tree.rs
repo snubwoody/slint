@@ -350,6 +350,12 @@ impl Document {
 }
 
 #[derive(Debug, Clone)]
+pub struct DialogWindow {
+    pub component: Rc<Component>,
+    pub parent_element: ElementRc,
+}
+
+#[derive(Debug, Clone)]
 pub struct PopupWindow {
     pub component: Rc<Component>,
     pub x: NamedReference,
@@ -518,6 +524,7 @@ pub struct Component {
 
     pub init_code: RefCell<InitCode>,
 
+    pub dialog_windows: RefCell<Vec<DialogWindow>>,
     pub popup_windows: RefCell<Vec<PopupWindow>>,
     pub timers: RefCell<Vec<Timer>>,
     pub menu_item_tree: RefCell<Vec<Rc<Component>>>,
