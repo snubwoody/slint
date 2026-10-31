@@ -4888,11 +4888,18 @@ fn compile_builtin_function_call(
                 Expression::PropertyReference(owner_ref),
             ] = arguments
             {
+                // TODO: need to generate DialogWindows first
                 let mut component_access_tokens = MemberAccess::Direct(quote!(_self));
                 let llr::MemberReference::Relative { parent_level, local_reference } = owner_ref
                 else {
                     unreachable!()
                 };
+
+                // let close_popup = context_menu.clone().then(|context_menu| quote!{
+                //     if let Some(current_id) = #context_menu.popup_id.take() {
+                //         sp::WindowInner::from_pub(#window_adapter_tokens.window()).close_popup(current_id);
+                //     }
+                // });
 
                 // DOC: it seems like we're accessing existing popup components
                 // instead I want to create a new window.

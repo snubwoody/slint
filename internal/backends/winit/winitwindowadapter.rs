@@ -374,6 +374,7 @@ pub(crate) enum WindowVisibility {
     Shown,
 }
 
+// DOC: maybe add parent
 /// GraphicsWindow is an implementation of the [WindowAdapter][`crate::eventloop::WindowAdapter`] trait. This is
 /// typically instantiated by entry factory functions of the different graphics back ends.
 pub struct WinitWindowAdapter {
@@ -464,6 +465,7 @@ pub struct WinitWindowAdapter {
     touch_finger_ids: RefCell<crate::touch_finger_id::TouchFingerIdAllocator>,
 }
 
+// DOC: idea get the window adapter, call a method like create_child_window that keeps a reference to the parent?
 impl WinitWindowAdapter {
     /// Creates a new reference-counted instance.
     pub(crate) fn new(
