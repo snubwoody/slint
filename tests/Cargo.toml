@@ -57,7 +57,10 @@ i-slint-renderer-anyrender = { version = "=1.19.0", path = "../internal/renderer
 i-slint-renderer-femtovg = { version = "=1.19.0", path = "../internal/renderers/femtovg", default-features = false }
 i-slint-renderer-skia = { version = "=1.19.0", path = "../internal/renderers/skia", default-features = false }
 
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+image = { version = "0.25", default-features = false, features = [
+  "png",
+  "jpeg",
+] }
 itertools = { version = "0.15" }
 rayon = { version = "1.10", default-features = false }
 spin_on = { version = "0.1" }

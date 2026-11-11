@@ -175,7 +175,11 @@ impl<Pixel: Clone> SharedPixelBuffer<Pixel> {
             width as u64 * height as u64,
             "SharedPixelBuffer::clone_from_slice: the slice does not cover the requested {width}x{height} pixels",
         );
-        Self { width, height, data }
+        Self {
+            width,
+            height,
+            data,
+        }
     }
 }
 
@@ -193,13 +197,22 @@ pub struct Gray8Pixel(pub u8);
 
 impl From<Gray8Pixel> for Rgb8Pixel {
     fn from(pixel: Gray8Pixel) -> Self {
-        Self { r: pixel.0, g: pixel.0, b: pixel.0 }
+        Self {
+            r: pixel.0,
+            g: pixel.0,
+            b: pixel.0,
+        }
     }
 }
 
 impl From<Gray8Pixel> for Rgba8Pixel {
     fn from(pixel: Gray8Pixel) -> Self {
-        Self { r: pixel.0, g: pixel.0, b: pixel.0, a: 255 }
+        Self {
+            r: pixel.0,
+            g: pixel.0,
+            b: pixel.0,
+            a: 255,
+        }
     }
 }
 
@@ -215,13 +228,22 @@ impl rgb::AsPixels<Gray8Pixel> for [u8] {
 
 impl From<crate::Color> for Rgb8Pixel {
     fn from(value: crate::Color) -> Self {
-        Self { r: value.red(), g: value.green(), b: value.blue() }
+        Self {
+            r: value.red(),
+            g: value.green(),
+            b: value.blue(),
+        }
     }
 }
 
 impl From<crate::Color> for Rgba8Pixel {
     fn from(value: crate::Color) -> Self {
-        Self { r: value.red(), g: value.green(), b: value.blue(), a: value.alpha() }
+        Self {
+            r: value.red(),
+            g: value.green(),
+            b: value.blue(),
+            a: value.alpha(),
+        }
     }
 }
 
@@ -276,17 +298,29 @@ impl From<Rgb8Pixel> for Rgb565Pixel {
 
 impl From<Rgb565Pixel> for Rgb8Pixel {
     fn from(p: Rgb565Pixel) -> Self {
-        Rgb8Pixel { r: p.red(), g: p.green(), b: p.blue() }
+        Rgb8Pixel {
+            r: p.red(),
+            g: p.green(),
+            b: p.blue(),
+        }
     }
 }
 
 impl From<Rgb565Pixel> for Rgba8Pixel {
     fn from(p: Rgb565Pixel) -> Self {
-        Rgba8Pixel { r: p.red(), g: p.green(), b: p.blue(), a: 255 }
+        Rgba8Pixel {
+            r: p.red(),
+            g: p.green(),
+            b: p.blue(),
+            a: 255,
+        }
     }
 }
 
-#[cfg(any(feature = "image-pixel-format-rgb565", feature = "image-pixel-format-gray8"))]
+#[cfg(any(
+    feature = "image-pixel-format-rgb565",
+    feature = "image-pixel-format-gray8"
+))]
 fn map_pixels<Source: Clone, Dest: Clone + From<Source>>(
     buffer: SharedPixelBuffer<Source>,
 ) -> SharedPixelBuffer<Dest> {
@@ -409,12 +443,12 @@ fn textures_to_buffer(size: IntSize, data: &[u8], textures: &[StaticTexture]) ->
             let slice = &mut slice[(rect.min_y() + y) * stride..][rect.x_range()];
             let source = &data[t.index + y * rect.width() * t.format.bpp()..];
             match t.format {
-                TexturePixelFormat::Rgb => {
-                    fill(slice, source, |p: &[u8; 3]| Rgba8Pixel::new(p[0], p[1], p[2], 255))
-                }
-                TexturePixelFormat::RgbaPremultiplied => {
-                    fill(slice, source, |p: &[u8; 4]| Rgba8Pixel::new(p[0], p[1], p[2], p[3]))
-                }
+                TexturePixelFormat::Rgb => fill(slice, source, |p: &[u8; 3]| {
+                    Rgba8Pixel::new(p[0], p[1], p[2], 255)
+                }),
+                TexturePixelFormat::RgbaPremultiplied => fill(slice, source, |p: &[u8; 4]| {
+                    Rgba8Pixel::new(p[0], p[1], p[2], p[3])
+                }),
                 TexturePixelFormat::Rgba => fill(slice, source, |p: &[u8; 4]| {
                     let pm = |c: u8| (c as u16 * p[3] as u16 / 255) as u8;
                     Rgba8Pixel::new(pm(p[0]), pm(p[1]), pm(p[2]), p[3])
@@ -435,9 +469,9 @@ fn textures_to_buffer(size: IntSize, data: &[u8], textures: &[StaticTexture]) ->
                     todo!("converting from a signed distance field to an image")
                 }
                 #[cfg(feature = "image-pixel-format-rgb565")]
-                TexturePixelFormat::Rgb565 => {
-                    fill(slice, source, |p: &[u8; 2]| Rgb565Pixel(u16::from_ne_bytes(*p)).into())
-                }
+                TexturePixelFormat::Rgb565 => fill(slice, source, |p: &[u8; 2]| {
+                    Rgb565Pixel(u16::from_ne_bytes(*p)).into()
+                }),
             }
         }
     }
@@ -455,7 +489,10 @@ pub struct CachedPath {
     last_modified: u32,
 }
 
-#[cfg(all(feature = "image-decoders", any(not(target_arch = "wasm32"), target_os = "emscripten")))]
+#[cfg(all(
+    feature = "image-decoders",
+    any(not(target_arch = "wasm32"), target_os = "emscripten")
+))]
 impl CachedPath {
     fn new<P: AsRef<std::path::Path>>(path: P) -> Self {
         let path_str = path.as_ref().to_string_lossy().as_ref().into();
@@ -465,7 +502,10 @@ impl CachedPath {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|t| t.as_secs() as u32)
             .unwrap_or_default();
-        Self { path: path_str, last_modified: timestamp }
+        Self {
+            path: path_str,
+            last_modified: timestamp,
+        }
     }
 }
 
@@ -510,7 +550,11 @@ impl ImageCacheKey {
             #[cfg(feature = "owned-pre-rendered-resources")]
             ImageInner::OwnedTextures(..) => return None,
         };
-        if matches!(key, ImageCacheKey::Invalid) { None } else { Some(key) }
+        if matches!(key, ImageCacheKey::Invalid) {
+            None
+        } else {
+            Some(key)
+        }
     }
 
     /// Returns a cache key for static embedded image data.
@@ -685,9 +729,11 @@ impl ImageInner {
                 Some(textures_to_buffer(ts.size, &ts.data, &ts.textures))
             }
             #[cfg(feature = "owned-pre-rendered-resources")]
-            ImageInner::OwnedTextures(textures) => {
-                Some(textures_to_buffer(textures.size, &textures.data, &textures.textures))
-            }
+            ImageInner::OwnedTextures(textures) => Some(textures_to_buffer(
+                textures.size,
+                &textures.data,
+                &textures.textures,
+            )),
             ImageInner::NineSlice(nine) => nine.0.render_to_buffer(None),
             ImageInner::AnimatedImage(animated) => Some(animated.first_frame_buffer().clone()),
             _ => None,
@@ -824,7 +870,10 @@ impl ImageInner {
 }
 
 /// Convert `image::DynamicImage` to `SharedImageBuffer`
-#[cfg(all(feature = "image-decoders", any(not(target_arch = "wasm32"), target_os = "emscripten")))]
+#[cfg(all(
+    feature = "image-decoders",
+    any(not(target_arch = "wasm32"), target_os = "emscripten")
+))]
 fn dynamic_image_to_shared_image_buffer(dynamic_image: image::DynamicImage) -> SharedImageBuffer {
     if dynamic_image.color().has_alpha() {
         // Prefer pre-multiplied alpha so that smooth-scaling won't bleed the alpha when blending
@@ -842,7 +891,10 @@ fn dynamic_image_to_shared_image_buffer(dynamic_image: image::DynamicImage) -> S
     }
 }
 
-#[cfg(all(feature = "image-decoders", any(not(target_arch = "wasm32"), target_os = "emscripten")))]
+#[cfg(all(
+    feature = "image-decoders",
+    any(not(target_arch = "wasm32"), target_os = "emscripten")
+))]
 fn rgba_image_to_premultiplied(image: image::RgbaImage) -> SharedPixelBuffer<Rgba8Pixel> {
     use rgb::AsPixels;
     SharedPixelBuffer {
@@ -861,8 +913,14 @@ impl PartialEq for ImageInner {
         match (self, other) {
             (Self::None, Self::None) => true,
             (
-                Self::EmbeddedImage { cache_key: l_cache_key, buffer: l_buffer },
-                Self::EmbeddedImage { cache_key: r_cache_key, buffer: r_buffer },
+                Self::EmbeddedImage {
+                    cache_key: l_cache_key,
+                    buffer: l_buffer,
+                },
+                Self::EmbeddedImage {
+                    cache_key: r_cache_key,
+                    buffer: r_buffer,
+                },
             ) => l_cache_key == r_cache_key && l_buffer == r_buffer,
             #[cfg(feature = "svg")]
             (Self::Svg(l0), Self::Svg(r0)) => vtable::VRc::ptr_eq(l0, r0),
@@ -1017,7 +1075,10 @@ impl Image {
     pub fn load_from_path(path: &std::path::Path) -> Result<Self, LoadImageError> {
         self::cache::IMAGE_CACHE.with(|global_cache| {
             let path: SharedString = path.to_str().ok_or(LoadImageError(()))?.into();
-            global_cache.borrow_mut().load_image_from_path(&path).ok_or(LoadImageError(()))
+            global_cache
+                .borrow_mut()
+                .load_image_from_path(&path)
+                .ok_or(LoadImageError(()))
         })
     }
 
@@ -1105,23 +1166,29 @@ impl Image {
         &self,
         target_size: Option<euclid::Size2D<u32, PhysicalPx>>,
     ) -> Option<SharedPixelBuffer<Rgba8Pixel>> {
-        self.0.render_to_buffer(target_size).map(|image| match image {
-            SharedImageBuffer::RGB8(buffer) => SharedPixelBuffer::<Rgba8Pixel> {
-                width: buffer.width,
-                height: buffer.height,
-                data: buffer.data.into_iter().map(Into::into).collect(),
-            },
-            SharedImageBuffer::RGBA8(buffer) => buffer,
-            SharedImageBuffer::RGBA8Premultiplied(buffer) => SharedPixelBuffer::<Rgba8Pixel> {
-                width: buffer.width,
-                height: buffer.height,
-                data: buffer.data.into_iter().map(Image::premultiplied_rgba_to_rgba).collect(),
-            },
-            #[cfg(feature = "image-pixel-format-rgb565")]
-            SharedImageBuffer::RGB565(buffer) => map_pixels(buffer),
-            #[cfg(feature = "image-pixel-format-gray8")]
-            SharedImageBuffer::Gray8(buffer) => map_pixels(buffer),
-        })
+        self.0
+            .render_to_buffer(target_size)
+            .map(|image| match image {
+                SharedImageBuffer::RGB8(buffer) => SharedPixelBuffer::<Rgba8Pixel> {
+                    width: buffer.width,
+                    height: buffer.height,
+                    data: buffer.data.into_iter().map(Into::into).collect(),
+                },
+                SharedImageBuffer::RGBA8(buffer) => buffer,
+                SharedImageBuffer::RGBA8Premultiplied(buffer) => SharedPixelBuffer::<Rgba8Pixel> {
+                    width: buffer.width,
+                    height: buffer.height,
+                    data: buffer
+                        .data
+                        .into_iter()
+                        .map(Image::premultiplied_rgba_to_rgba)
+                        .collect(),
+                },
+                #[cfg(feature = "image-pixel-format-rgb565")]
+                SharedImageBuffer::RGB565(buffer) => map_pixels(buffer),
+                #[cfg(feature = "image-pixel-format-gray8")]
+                SharedImageBuffer::Gray8(buffer) => map_pixels(buffer),
+            })
     }
 
     /// Returns the pixel buffer for the Image if available in RGBA format, with the alpha channel pre-multiplied
@@ -1138,7 +1205,11 @@ impl Image {
             SharedImageBuffer::RGBA8(buffer) => SharedPixelBuffer::<Rgba8Pixel> {
                 width: buffer.width,
                 height: buffer.height,
-                data: buffer.data.into_iter().map(Image::rgba_to_premultiplied_rgba).collect(),
+                data: buffer
+                    .data
+                    .into_iter()
+                    .map(Image::rgba_to_premultiplied_rgba)
+                    .collect(),
             },
             SharedImageBuffer::RGBA8Premultiplied(buffer) => buffer,
             #[cfg(feature = "image-pixel-format-rgb565")]
@@ -1245,7 +1316,10 @@ impl Image {
     /// Creates a new Image from the specified buffer, which contains SVG raw data.
     ///
     /// On the web, the browser renders the SVG, and compressed SVG data (svgz) is not supported.
-    #[cfg(any(feature = "svg", all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+    #[cfg(any(
+        feature = "svg",
+        all(target_arch = "wasm32", not(target_os = "emscripten"))
+    ))]
     pub fn load_from_svg_data(buffer: &[u8]) -> Result<Self, LoadImageError> {
         // On the web, the browser decodes the SVG.
         #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
@@ -1324,7 +1398,9 @@ impl Image {
     /// assert_eq!(image.path(), Some(path_buf.as_path()));
     /// ```
     pub fn path(&self) -> Option<&std::path::Path> {
-        self.0.path().map(|path| std::path::Path::new(path.as_str()))
+        self.0
+            .path()
+            .map(|path| std::path::Path::new(path.as_str()))
     }
 }
 
@@ -1450,7 +1526,11 @@ impl BorrowedOpenGLTextureBuilder {
     #[allow(unsafe_code)]
     #[cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))]
     pub unsafe fn new_gl_2d_rgba_texture(texture_id: core::num::NonZeroU32, size: IntSize) -> Self {
-        Self(BorrowedOpenGLTexture { texture_id, size, origin: Default::default() })
+        Self(BorrowedOpenGLTexture {
+            texture_id,
+            size,
+            origin: Default::default(),
+        })
     }
 
     /// Generates the base configuration for a borrowed WebGL texture.
@@ -1465,7 +1545,11 @@ impl BorrowedOpenGLTextureBuilder {
     /// Use [`Self::origin()`] to change this.
     #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
     pub fn new_webgl_2d_rgba_texture(texture: web_sys::WebGlTexture, size: IntSize) -> Self {
-        Self(BorrowedOpenGLTexture { texture, size, origin: Default::default() })
+        Self(BorrowedOpenGLTexture {
+            texture,
+            size,
+            origin: Default::default(),
+        })
     }
 
     /// Configures the texture to be rendered vertically mirrored.
@@ -1488,7 +1572,10 @@ impl BorrowedOpenGLTextureBuilder {
 #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten"), feature = "std"))]
 pub fn load_as_html_image(url: &str) -> Result<Image, LoadImageError> {
     self::cache::IMAGE_CACHE.with(|global_cache| {
-        global_cache.borrow_mut().load_as_html_image(url).ok_or(LoadImageError(()))
+        global_cache
+            .borrow_mut()
+            .load_as_html_image(url)
+            .ok_or(LoadImageError(()))
     })
 }
 
@@ -1500,7 +1587,10 @@ pub fn load_as_html_image(url: &str) -> Result<Image, LoadImageError> {
 ))]
 pub fn load_image_from_embedded_data(data: Slice<'static, u8>, format: Slice<'_, u8>) -> Image {
     self::cache::IMAGE_CACHE.with(|global_cache| {
-        global_cache.borrow_mut().load_image_from_embedded_data(data, format).unwrap_or_default()
+        global_cache
+            .borrow_mut()
+            .load_image_from_embedded_data(data, format)
+            .unwrap_or_default()
     })
 }
 
@@ -1524,7 +1614,10 @@ fn test_image_size_from_buffer_without_backend() {
         let buffer = SharedPixelBuffer::<Rgb8Pixel>::new(320, 200);
         let image = Image::from_rgb8(buffer.clone());
         assert_eq!(image.size(), [320, 200].into());
-        assert_eq!(image.to_rgb8().as_ref().map(|b| b.as_slice()), Some(buffer.as_slice()));
+        assert_eq!(
+            image.to_rgb8().as_ref().map(|b| b.as_slice()),
+            Some(buffer.as_slice())
+        );
     }
 }
 
@@ -1906,7 +1999,11 @@ fn magnified_render_size(
     let power_of_two = (transform_scale.log2() - 0.001).ceil().exp2();
     let longest_side = render_size.width.max(render_size.height) as f32;
     let scale = power_of_two.min(MAX_MAGNIFIED_SIZE / longest_side);
-    if scale > 1. { (render_size.cast::<f32>() * scale).round().cast() } else { render_size }
+    if scale > 1. {
+        (render_size.cast::<f32>() * scale).round().cast()
+    } else {
+        render_size
+    }
 }
 
 /// Generate an iterator of  [`FitResult`] for each slice of a nine-slice border image
@@ -1943,23 +2040,44 @@ pub fn fit9slice(
                 rect(l, 0, source.width - l - r, t),
                 rect(sf(l), 0., target.width - sf(l) - sf(r), sf(t)),
             ),
-            fit_to(rect(source.width - r, 0, r, t), rect(target.width - sf(r), 0., sf(r), sf(t))),
+            fit_to(
+                rect(source.width - r, 0, r, t),
+                rect(target.width - sf(r), 0., sf(r), sf(t)),
+            ),
             fit_to(
                 rect(0, t, l, source.height - t - b),
                 rect(0., sf(t), sf(l), target.height - sf(t) - sf(b)),
             ),
             fit_to(
                 rect(l, t, source.width - l - r, source.height - t - b),
-                rect(sf(l), sf(t), target.width - sf(l) - sf(r), target.height - sf(t) - sf(b)),
+                rect(
+                    sf(l),
+                    sf(t),
+                    target.width - sf(l) - sf(r),
+                    target.height - sf(t) - sf(b),
+                ),
             ),
             fit_to(
                 rect(source.width - r, t, r, source.height - t - b),
-                rect(target.width - sf(r), sf(t), sf(r), target.height - sf(t) - sf(b)),
+                rect(
+                    target.width - sf(r),
+                    sf(t),
+                    sf(r),
+                    target.height - sf(t) - sf(b),
+                ),
             ),
-            fit_to(rect(0, source.height - b, l, b), rect(0., target.height - sf(b), sf(l), sf(b))),
+            fit_to(
+                rect(0, source.height - b, l, b),
+                rect(0., target.height - sf(b), sf(l), sf(b)),
+            ),
             fit_to(
                 rect(l, source.height - b, source.width - l - r, b),
-                rect(sf(l), target.height - sf(b), target.width - sf(l) - sf(r), sf(b)),
+                rect(
+                    sf(l),
+                    target.height - sf(b),
+                    target.width - sf(l) - sf(r),
+                    sf(b),
+                ),
             ),
             fit_to(
                 rect(source.width - r, source.height - b, r, b),
@@ -2196,10 +2314,16 @@ mod tests {
         // Without magnification, the image is rasterized at its usual size.
         assert_eq!(magnified_render_size(size(100, 50), 1.), size(100, 50));
         assert_eq!(magnified_render_size(size(100, 50), 0.5), size(100, 50));
-        assert_eq!(magnified_render_size(size(100, 50), f32::NAN), size(100, 50));
+        assert_eq!(
+            magnified_render_size(size(100, 50), f32::NAN),
+            size(100, 50)
+        );
         // The magnification is rounded up to a power of two, ignoring rounding errors.
         assert_eq!(magnified_render_size(size(100, 50), 2.), size(200, 100));
-        assert_eq!(magnified_render_size(size(100, 50), 2.000_001), size(200, 100));
+        assert_eq!(
+            magnified_render_size(size(100, 50), 2.000_001),
+            size(200, 100)
+        );
         assert_eq!(magnified_render_size(size(100, 50), 3.), size(400, 200));
         // It stops at 2048 pixels on the longest side...
         assert_eq!(magnified_render_size(size(1000, 500), 4.), size(2048, 1024));
@@ -2301,12 +2425,20 @@ mod tests {
     fn test_gray8_from_luminance_bytes() {
         let buffer =
             SharedPixelBuffer::<super::Gray8Pixel>::clone_from_slice(&[0x10u8, 0x80], 2, 1);
-        assert_eq!(buffer.as_slice(), &[super::Gray8Pixel(0x10), super::Gray8Pixel(0x80)]);
+        assert_eq!(
+            buffer.as_slice(),
+            &[super::Gray8Pixel(0x10), super::Gray8Pixel(0x80)]
+        );
     }
 
     #[test]
     fn test_rgb565_pixel_conversions() {
-        for &(r, g, b) in &[(0xff, 0x25, 0u8), (0x56, 0x42, 0xe3), (0, 0, 0), (255, 255, 255)] {
+        for &(r, g, b) in &[
+            (0xff, 0x25, 0u8),
+            (0x56, 0x42, 0xe3),
+            (0, 0, 0),
+            (255, 255, 255),
+        ] {
             let pix565 = Rgb565Pixel::from_rgb(r, g, b);
             let pix888: super::Rgb8Pixel = pix565.into();
             // 565 -> 888 -> 565 is lossless.

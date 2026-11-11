@@ -6,18 +6,18 @@
 
 use std::sync::OnceLock;
 
+use windows::core::{s, w};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
-use windows::Win32::Graphics::Gdi::{GetDC, HDC, ReleaseDC};
+use windows::Win32::Graphics::Gdi::{GetDC, ReleaseDC, HDC};
 use windows::Win32::Graphics::OpenGL::{
-    ChoosePixelFormat, PFD_DOUBLEBUFFER, PFD_DRAW_TO_WINDOW, PFD_MAIN_PLANE, PFD_SUPPORT_OPENGL,
-    PFD_TYPE_RGBA, PIXELFORMATDESCRIPTOR, SetPixelFormat, wglCreateContext, wglDeleteContext,
-    wglGetCurrentContext, wglGetCurrentDC, wglGetProcAddress, wglMakeCurrent,
+    wglCreateContext, wglDeleteContext, wglGetCurrentContext, wglGetCurrentDC, wglGetProcAddress,
+    wglMakeCurrent, ChoosePixelFormat, SetPixelFormat, PFD_DOUBLEBUFFER, PFD_DRAW_TO_WINDOW,
+    PFD_MAIN_PLANE, PFD_SUPPORT_OPENGL, PFD_TYPE_RGBA, PIXELFORMATDESCRIPTOR,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CS_OWNDC, CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, UnregisterClassW,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, UnregisterClassW, CS_OWNDC,
     WINDOW_EX_STYLE, WNDCLASSW, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_OVERLAPPED,
 };
-use windows::core::{s, w};
 
 pub fn opengl_2_available() -> bool {
     static AVAILABLE: OnceLock<bool> = OnceLock::new();

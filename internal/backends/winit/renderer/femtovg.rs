@@ -14,7 +14,7 @@ use i_slint_core::graphics::RequestedOpenGLVersion;
 use i_slint_core::platform::PlatformError;
 use i_slint_core::renderer::{DrawOutcome, Renderer};
 #[cfg(supports_opengl)]
-use i_slint_renderer_femtovg::{FemtoVGOpenGLRendererExt, opengl};
+use i_slint_renderer_femtovg::{opengl, FemtoVGOpenGLRendererExt};
 use i_slint_renderer_femtovg::{FemtoVGRenderer, FemtoVGRendererExt};
 
 use winit::event_loop::ActiveEventLoop;
@@ -52,8 +52,10 @@ impl GlutinFemtoVGRenderer {
             .transpose()?;
         #[cfg(target_os = "windows")]
         {
-            let desktop_opengl_required =
-                matches!(requested_opengl_version, Some(RequestedOpenGLVersion::OpenGL(_)));
+            let desktop_opengl_required = matches!(
+                requested_opengl_version,
+                Some(RequestedOpenGLVersion::OpenGL(_))
+            );
             if !desktop_opengl_required && !glprobe::opengl_2_available() {
                 return Err(OPENGL_2_REQUIRED.into());
             }
@@ -135,8 +137,8 @@ impl GlutinFemtoVGRenderer {
         window_id: winit::window::WindowId,
         html_canvas: web_sys::HtmlCanvasElement,
     ) {
-        use wasm_bindgen::JsCast;
         use wasm_bindgen::closure::Closure;
+        use wasm_bindgen::JsCast;
 
         let add_listener = |name, closure: Closure<dyn Fn(web_sys::WebGlContextEvent)>| {
             html_canvas
@@ -187,7 +189,11 @@ impl GlutinFemtoVGRenderer {
                     let this = (window_adapter.renderer() as &dyn std::any::Any)
                         .downcast_ref::<Self>()
                         .unwrap();
-                    if this.renderer.set_opengl_context(html_canvas.clone()).is_ok() {
+                    if this
+                        .renderer
+                        .set_opengl_context(html_canvas.clone())
+                        .is_ok()
+                    {
                         use i_slint_core::platform::WindowAdapter;
                         window_adapter.request_redraw();
                         let _ = window_adapter.draw().ok();
@@ -247,7 +253,8 @@ impl WinitCompatibleRenderer for WGPUFemtoVGRenderer {
     fn render(&self, window: &i_slint_core::api::Window) -> Result<DrawOutcome, PlatformError> {
         // Use the Ext entry point so we get the `DrawOutcome` back without changing
         // `FemtoVGRenderer::render`'s public `Result<(), _>` signature.
-        self.renderer.render_transformed(0., (0., 0.), window.size())
+        self.renderer
+            .render_transformed(0., (0., 0.), window.size())
     }
 
     fn as_core_renderer(&self) -> &dyn Renderer {
@@ -291,7 +298,9 @@ impl WinitCompatibleRenderer for WGPUFemtoVGRenderer {
                 PlatformError::from("Cannot initialize wgpu: window adapter is destroyed")
             })?;
             use i_slint_core::platform::WindowAdapter;
-            i_slint_core::window::WindowInner::from_pub(window_adapter.window()).context().clone()
+            i_slint_core::window::WindowInner::from_pub(window_adapter.window())
+                .context()
+                .clone()
         };
 
         i_slint_core::graphics::wgpu_30::init_instance_adapter_device_queue_surface_then(

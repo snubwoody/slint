@@ -5,14 +5,13 @@
 
 use cpp::*;
 use i_slint_common::sharedfontique::HashedBlob;
-use i_slint_core::DataTransfer;
-use i_slint_core::cursor::{MouseCursorHandling, MouseCursorInner, scaled_hotspot};
+use i_slint_core::cursor::{scaled_hotspot, MouseCursorHandling, MouseCursorInner};
 use i_slint_core::graphics::rendering_metrics_collector::{
     RenderingMetrics, RenderingMetricsCollector,
 };
 use i_slint_core::graphics::{
-    Brush, Color, ImageCacheKey, IntSize, Point, Rgba8Pixel, SharedImageBuffer, SharedPixelBuffer,
-    euclid,
+    euclid, Brush, Color, ImageCacheKey, IntSize, Point, Rgba8Pixel, SharedImageBuffer,
+    SharedPixelBuffer,
 };
 use i_slint_core::input::{
     BackendDragEvent, BackendMouseEvent, InternalKeyEvent, KeyEvent, KeyEventType, TouchPhase,
@@ -30,15 +29,16 @@ use i_slint_core::items::{
 };
 use i_slint_core::layout::Orientation;
 use i_slint_core::lengths::{
-    LogicalBorderRadius, LogicalLength, LogicalPoint, LogicalRect, LogicalSize, LogicalVector,
-    PhysicalPx, ScaleFactor, logical_size_from_api,
+    logical_size_from_api, LogicalBorderRadius, LogicalLength, LogicalPoint, LogicalRect,
+    LogicalSize, LogicalVector, PhysicalPx, ScaleFactor,
 };
 use i_slint_core::platform::{PlatformError, WindowEvent};
 use i_slint_core::string::ToSharedString;
-use i_slint_core::textlayout::sharedparley::{self, GlyphRenderer, fontique, parley};
+use i_slint_core::textlayout::sharedparley::{self, fontique, parley, GlyphRenderer};
 use i_slint_core::window::{
     DragRequest, WindowAdapter, WindowAdapterInternal, WindowInner, WindowKind,
 };
+use i_slint_core::DataTransfer;
 use i_slint_core::{ImageInner, SharedString};
 
 use std::cell::RefCell;
@@ -717,8 +717,14 @@ fn into_qbrush(
                 g.angle(),
                 [width as f32, height as f32].into(),
             );
-            let p1 = qttypes::QPointF { x: start.x as _, y: start.y as _ };
-            let p2 = qttypes::QPointF { x: end.x as _, y: end.y as _ };
+            let p1 = qttypes::QPointF {
+                x: start.x as _,
+                y: start.y as _,
+            };
+            let p2 = qttypes::QPointF {
+                x: end.x as _,
+                y: end.y as _,
+            };
             cpp_class!(unsafe struct QLinearGradient as "QLinearGradient");
             let mut qlg = cpp! {
                 unsafe [p1 as "QPointF", p2 as "QPointF"] -> QLinearGradient as "QLinearGradient" {
@@ -841,7 +847,12 @@ macro_rules! check_geometry {
         if size.width < 1. || size.height < 1. {
             return Default::default();
         };
-        qttypes::QRectF { x: 0., y: 0., width: size.width as _, height: size.height as _ }
+        qttypes::QRectF {
+            x: 0.,
+            y: 0.,
+            width: size.width as _,
+            height: size.height as _,
+        }
     }};
 }
 
@@ -918,7 +929,13 @@ impl ItemRenderer for QtItemRenderer<'_> {
     ) {
         self.save_state();
         self.pixel_align_origin();
-        sharedparley::draw_text(self, text, Some(self_rc), size, Some(self.text_layout_cache));
+        sharedparley::draw_text(
+            self,
+            text,
+            Some(self_rc),
+            size,
+            Some(self.text_layout_cache),
+        );
         self.restore_state();
     }
 
@@ -962,7 +979,10 @@ impl ItemRenderer for QtItemRenderer<'_> {
         let stroke_dash_array_len = stroke_dash_array.len();
         let stroke_dash_offset = path.stroke_dash_offset().get();
 
-        let pos = qttypes::QPoint { x: offset.x as _, y: offset.y as _ };
+        let pos = qttypes::QPoint {
+            x: offset.x as _,
+            y: offset.y as _,
+        };
         let mut painter_path = QPainterPath::default();
 
         painter_path.set_fill_rule(match path.fill_rule() {
@@ -972,7 +992,10 @@ impl ItemRenderer for QtItemRenderer<'_> {
 
         for x in path_events.iter() {
             fn to_qpointf(p: Point) -> qttypes::QPointF {
-                qttypes::QPointF { x: p.x as _, y: p.y as _ }
+                qttypes::QPointF {
+                    x: p.x as _,
+                    y: p.y as _,
+                }
             }
             match x {
                 lyon_path::Event::Begin { at } => {
@@ -985,10 +1008,19 @@ impl ItemRenderer for QtItemRenderer<'_> {
                     painter_path.quad_to(to_qpointf(ctrl), to_qpointf(to));
                 }
 
-                lyon_path::Event::Cubic { from: _, ctrl1, ctrl2, to } => {
+                lyon_path::Event::Cubic {
+                    from: _,
+                    ctrl1,
+                    ctrl2,
+                    to,
+                } => {
                     painter_path.cubic_to(to_qpointf(ctrl1), to_qpointf(ctrl2), to_qpointf(to));
                 }
-                lyon_path::Event::End { last: _, first: _, close } => {
+                lyon_path::Event::End {
+                    last: _,
+                    first: _,
+                    close,
+                } => {
                     // FIXME: are we supposed to do something with last and first?
                     if close {
                         painter_path.close()
@@ -1256,7 +1288,9 @@ impl ItemRenderer for QtItemRenderer<'_> {
         // Rasterize scalable sources at scale_factor so SVGs are crisp on high-DPI displays
         // (matches femtovg/skia draw_image_direct).
         let pixmap_size = image_inner.is_svg().then(|| target_size.cast());
-        let Some(pixmap) = image_to_pixmap(image_inner, pixmap_size) else { return };
+        let Some(pixmap) = image_to_pixmap(image_inner, pixmap_size) else {
+            return;
+        };
 
         let pixmap_size = pixmap.size();
         let source_rect = qttypes::QRectF {
@@ -1344,7 +1378,11 @@ impl GlyphRenderer for QtItemRenderer<'_> {
         brush: i_slint_core::Brush,
         size: LogicalSize,
     ) -> Option<Self::PlatformBrush> {
-        Some(GlyphBrush::Fill(into_qbrush(brush, size.width as _, size.height as _)))
+        Some(GlyphBrush::Fill(into_qbrush(
+            brush,
+            size.width as _,
+            size.height as _,
+        )))
     }
 
     fn platform_brush_for_color(
@@ -1352,9 +1390,11 @@ impl GlyphRenderer for QtItemRenderer<'_> {
         color: &i_slint_core::Color,
     ) -> Option<Self::PlatformBrush> {
         let color: u32 = color.as_argb_encoded();
-        Some(GlyphBrush::Fill(cpp!(unsafe [color as "QRgb"] -> qttypes::QBrush as "QBrush" {
-            return QBrush(QColor::fromRgba(color));
-        })))
+        Some(GlyphBrush::Fill(
+            cpp!(unsafe [color as "QRgb"] -> qttypes::QBrush as "QBrush" {
+                return QBrush(QColor::fromRgba(color));
+            }),
+        ))
     }
 
     fn platform_text_stroke_brush(
@@ -1398,7 +1438,9 @@ impl GlyphRenderer for QtItemRenderer<'_> {
         }
 
         let Some(mut raw_font) = FONT_CACHE.with(|cache| {
-            cache.borrow_mut().font_with_variations(font, font_size.get(), synthesis)
+            cache
+                .borrow_mut()
+                .font_with_variations(font, font_size.get(), synthesis)
         }) else {
             return;
         };
@@ -1408,7 +1450,13 @@ impl GlyphRenderer for QtItemRenderer<'_> {
         let (glyph_indices, positions): (Vec<u32>, Vec<qttypes::QPointF>) = glyphs_it
             .into_iter()
             .map(|g| {
-                (g.id, qttypes::QPointF { x: g.x as f64, y: g.y as f64 + y_offset.get() as f64 })
+                (
+                    g.id,
+                    qttypes::QPointF {
+                        x: g.x as f64,
+                        y: g.y as f64 + y_offset.get() as f64,
+                    },
+                )
             })
             .unzip();
 
@@ -1493,11 +1541,10 @@ impl GlyphRenderer for QtItemRenderer<'_> {
         let painter: &mut QPainterPtr = &mut self.painter;
 
         let (border_brush, border_width) = match border {
-            Some(sharedparley::RectangleBorder { brush: GlyphBrush::Fill(b), width })
-                if width.get() > 0.0 =>
-            {
-                (b, width.get() as f64)
-            }
+            Some(sharedparley::RectangleBorder {
+                brush: GlyphBrush::Fill(b),
+                width,
+            }) if width.get() > 0.0 => (b, width.get() as f64),
             _ => (qttypes::QBrush::default(), 0.0_f64),
         };
         let radius = radius.get() as f64;
@@ -1657,7 +1704,11 @@ impl FontCache {
             .or_insert_with(move || {
                 let mut raw_font = QRawFont::default();
                 raw_font.load_from_data(font.data.as_ref(), 12.0);
-                if raw_font.is_valid() { Some(raw_font) } else { None }
+                if raw_font.is_valid() {
+                    Some(raw_font)
+                } else {
+                    None
+                }
             })
             .clone()
     }
@@ -1702,8 +1753,16 @@ impl FontCache {
             return None;
         }
         let id = register_font_with_database(font.data.as_ref());
-        let family = if id >= 0 { font_family_for_registration(id) } else { String::new() };
-        let result = if !family.is_empty() { Some(family.clone()) } else { None };
+        let family = if id >= 0 {
+            font_family_for_registration(id)
+        } else {
+            String::new()
+        };
+        let result = if !family.is_empty() {
+            Some(family.clone())
+        } else {
+            None
+        };
         self.registrations.insert(blob_key, (id, family));
         result
     }
@@ -1729,7 +1788,11 @@ impl FontCache {
             })
             .unzip();
         let raw_font = raw_font_with_variations(&family, pixel_size, &tags, &values);
-        if raw_font.is_valid() { Some(raw_font) } else { self.font(font) }
+        if raw_font.is_valid() {
+            Some(raw_font)
+        } else {
+            self.font(font)
+        }
     }
 }
 
@@ -1779,18 +1842,31 @@ impl ColorBitmapGlyphs {
     ) -> bool {
         let font_id = [font.data.id(), font.index as u64];
         let font_ref = || swash::FontRef::from_index(font.data.as_ref(), font.index as usize);
-        let is_color = *self.fonts.entry((font_id[0], font.index)).or_insert_with(|| {
-            font_ref().is_some_and(|font_ref| {
-                self.context.builder_with_id(font_ref, font_id).build().has_color_bitmaps()
-            })
-        });
+        let is_color = *self
+            .fonts
+            .entry((font_id[0], font.index))
+            .or_insert_with(|| {
+                font_ref().is_some_and(|font_ref| {
+                    self.context
+                        .builder_with_id(font_ref, font_id)
+                        .build()
+                        .has_color_bitmaps()
+                })
+            });
         if !is_color || stroke {
             return is_color;
         }
-        let Some(font_ref) = font_ref() else { return true };
+        let Some(font_ref) = font_ref() else {
+            return true;
+        };
         let glyphs: Vec<_> = glyphs.collect();
         let key = |glyph: &parley::layout::Glyph| {
-            (font_id[0], font.index, glyph.id as u16, font_size.get().to_bits())
+            (
+                font_id[0],
+                font.index,
+                glyph.id as u16,
+                font_size.get().to_bits(),
+            )
         };
         if self.glyphs.len() + glyphs.len() > Self::MAX_GLYPHS {
             self.glyphs.clear();
@@ -1798,7 +1874,12 @@ impl ColorBitmapGlyphs {
         let mut scaler = glyphs
             .iter()
             .any(|glyph| !self.glyphs.contains_key(&key(glyph)))
-            .then(|| self.context.builder_with_id(font_ref, font_id).size(font_size.get()).build());
+            .then(|| {
+                self.context
+                    .builder_with_id(font_ref, font_id)
+                    .size(font_size.get())
+                    .build()
+            });
         for glyph in &glyphs {
             let cached = self.glyphs.entry(key(glyph)).or_insert_with(|| {
                 Self::render(
@@ -1809,7 +1890,9 @@ impl ColorBitmapGlyphs {
             // Glyphs without a bitmap are skipped, not drawn with the QRawFont: in Noto Color
             // Emoji these draw nothing (the space, the zero-width joiner, the tags of a
             // subdivision flag), and it has no outlines (`glyf`, `CFF`) to fall back on.
-            let Some(ColorBitmapGlyph { pixmap, left, top }) = cached else { continue };
+            let Some(ColorBitmapGlyph { pixmap, left, top }) = cached else {
+                continue;
+            };
             let x = glyph.x + *left as f32;
             let y = glyph.y + y_offset.get() - *top as f32;
             cpp! { unsafe [painter as "QPainterPtr*", pixmap as "const QPixmap*", x as "float",
@@ -1821,7 +1904,7 @@ impl ColorBitmapGlyphs {
     }
 
     fn render(scaler: &mut swash::scale::Scaler, glyph_id: u16) -> Option<ColorBitmapGlyph> {
-        use swash::scale::{StrikeWith, image::Content};
+        use swash::scale::{image::Content, StrikeWith};
         let image = scaler.scale_color_bitmap(glyph_id, StrikeWith::BestFit)?;
         if image.content != Content::Color || image.placement.width == 0 {
             return None;
@@ -1835,29 +1918,41 @@ impl ColorBitmapGlyphs {
             QImage img(data, width, height, width * 4, QImage::Format_RGBA8888);
             return QPixmap::fromImage(img);
         }};
-        Some(ColorBitmapGlyph { pixmap, left: image.placement.left, top: image.placement.top })
+        Some(ColorBitmapGlyph {
+            pixmap,
+            left: image.placement.left,
+            top: image.placement.top,
+        })
     }
 }
 
 fn shared_image_buffer_to_pixmap(buffer: &SharedImageBuffer) -> Option<qttypes::QPixmap> {
     let (format, bytes_per_line, bytes) = match buffer {
-        SharedImageBuffer::RGBA8(img) => {
-            (qttypes::ImageFormat::RGBA8888, img.width() * 4, img.as_bytes())
-        }
-        SharedImageBuffer::RGBA8Premultiplied(img) => {
-            (qttypes::ImageFormat::RGBA8888_Premultiplied, img.width() * 4, img.as_bytes())
-        }
-        SharedImageBuffer::RGB8(img) => {
-            (qttypes::ImageFormat::RGB888, img.width() * 3, img.as_bytes())
-        }
+        SharedImageBuffer::RGBA8(img) => (
+            qttypes::ImageFormat::RGBA8888,
+            img.width() * 4,
+            img.as_bytes(),
+        ),
+        SharedImageBuffer::RGBA8Premultiplied(img) => (
+            qttypes::ImageFormat::RGBA8888_Premultiplied,
+            img.width() * 4,
+            img.as_bytes(),
+        ),
+        SharedImageBuffer::RGB8(img) => (
+            qttypes::ImageFormat::RGB888,
+            img.width() * 3,
+            img.as_bytes(),
+        ),
         #[cfg(feature = "image-pixel-format-rgb565")]
         SharedImageBuffer::RGB565(img) => {
             (qttypes::ImageFormat::RGB16, img.width() * 2, img.as_bytes())
         }
         #[cfg(feature = "image-pixel-format-gray8")]
-        SharedImageBuffer::Gray8(img) => {
-            (qttypes::ImageFormat::Grayscale8, img.width(), img.as_bytes())
-        }
+        SharedImageBuffer::Gray8(img) => (
+            qttypes::ImageFormat::Grayscale8,
+            img.width(),
+            img.as_bytes(),
+        ),
         _ => return None,
     };
     let width: i32 = buffer.width() as _;
@@ -2061,7 +2156,10 @@ impl QtItemRenderer<'_> {
             if let Some(offset) = fit.tiled {
                 let scale_x: f32 = fit.source_to_target_x;
                 let scale_y: f32 = fit.source_to_target_y;
-                let offset = qttypes::QPoint { x: offset.x as _, y: offset.y as _ };
+                let offset = qttypes::QPoint {
+                    x: offset.x as _,
+                    y: offset.y as _,
+                };
                 cpp! { unsafe [
                     painter as "QPainterPtr*", pixmap as "QPixmap", source_rect as "QRectF",
                     dest_rect as "QRectF", smooth as "bool", scale_x as "float", scale_y as "float",
@@ -2369,8 +2467,11 @@ impl QtWindow {
     // information is lost at this point, so we still map it to the menu key (see #11591).
     fn context_menu_event(&self) {
         let menu_key: SharedString = i_slint_core::platform::Key::Menu.into();
-        self.window.dispatch_event(WindowEvent::KeyPressed { text: menu_key.clone() });
-        self.window.dispatch_event(WindowEvent::KeyReleased { text: menu_key });
+        self.window.dispatch_event(WindowEvent::KeyPressed {
+            text: menu_key.clone(),
+        });
+        self.window
+            .dispatch_event(WindowEvent::KeyReleased { text: menu_key });
     }
 
     fn paint_event(&self, painter: QPainterPtr) {
@@ -2386,7 +2487,10 @@ impl QtWindow {
                 cache: &self.cache,
                 text_layout_cache: &self.text_layout_cache,
                 window: &self.window,
-                metrics: RenderingMetrics { layers_created: Some(0), ..Default::default() },
+                metrics: RenderingMetrics {
+                    layers_created: Some(0),
+                    ..Default::default()
+                },
             };
 
             for (component, origin) in components {
@@ -2484,13 +2588,21 @@ impl QtWindow {
         drop_event.position = position;
         drop_event.proposed_action = qt_drop_action_to_slint(proposed);
         let drag_event = if is_drop {
-            BackendDragEvent::Drop { event: drop_event, allowed: allowed_actions }
+            BackendDragEvent::Drop {
+                event: drop_event,
+                allowed: allowed_actions,
+            }
         } else {
-            BackendDragEvent::Move { event: drop_event, allowed: allowed_actions }
+            BackendDragEvent::Move {
+                event: drop_event,
+                allowed: allowed_actions,
+            }
         };
         let chosen = WindowInner::from_pub(&self.window).process_drag_event(drag_event);
         timer_event();
-        chosen.map(slint_drag_action_to_qt).unwrap_or(key_generated::Qt_DropAction_IgnoreAction)
+        chosen
+            .map(slint_drag_action_to_qt)
+            .unwrap_or(key_generated::Qt_DropAction_IgnoreAction)
     }
 
     fn key_event(&self, key: i32, text: qttypes::QString, released: bool, repeat: bool) {
@@ -2622,7 +2734,10 @@ impl WindowAdapter for QtWindow {
     fn set_position(&self, position: i_slint_core::api::WindowPosition) {
         let physical_position = position.to_physical(self.window().scale_factor());
         let widget_ptr = self.widget_ptr();
-        let pos = qttypes::QPoint { x: physical_position.x as _, y: physical_position.y as _ };
+        let pos = qttypes::QPoint {
+            x: physical_position.x as _,
+            y: physical_position.y as _,
+        };
         cpp! {unsafe [widget_ptr as "QWidget*", pos as "QPoint"] {
             const auto* parent = widget_ptr->parentWidget();
             if (parent) {
@@ -2671,7 +2786,9 @@ impl WindowAdapter for QtWindow {
     fn update_window_properties(&self, properties: i_slint_core::window::WindowProperties<'_>) {
         let widget_ptr = self.widget_ptr();
         let title: qttypes::QString = properties.title().as_str().into();
-        let Some(window_item) = WindowInner::from_pub(&self.window).window_item() else { return };
+        let Some(window_item) = WindowInner::from_pub(&self.window).window_item() else {
+            return;
+        };
         let window_item = window_item.as_pin_ref();
         let no_frame = window_item.no_frame();
         let always_on_top = window_item.always_on_top();
@@ -2685,17 +2802,24 @@ impl WindowAdapter for QtWindow {
                 return widget_ptr->size();
             });
             if size.width == 0 {
-                window_item.width.set(LogicalLength::new(existing_size.width as _));
+                window_item
+                    .width
+                    .set(LogicalLength::new(existing_size.width as _));
                 size.width = existing_size.width;
             }
             if size.height == 0 {
-                window_item.height.set(LogicalLength::new(existing_size.height as _));
+                window_item
+                    .height
+                    .set(LogicalLength::new(existing_size.height as _));
                 size.height = existing_size.height;
             }
         }
 
-        let background =
-            into_qbrush(properties.background(), size.width.into(), size.height.into());
+        let background = into_qbrush(
+            properties.background(),
+            size.width.into(),
+            size.height.into(),
+        );
 
         let pixmap = match (&window_item.icon()).into() {
             &ImageInner::None => {
@@ -2775,14 +2899,20 @@ impl WindowAdapter for QtWindow {
         let constraints = properties.layout_constraints();
 
         let min_size: qttypes::QSize = constraints.min.map_or_else(
-            || qttypes::QSize { width: 0, height: 0 }, // (0x0) means unset min size for QWidget
+            || qttypes::QSize {
+                width: 0,
+                height: 0,
+            }, // (0x0) means unset min size for QWidget
             into_qsize,
         );
 
         const WIDGET_SIZE_MAX: u32 = 16_777_215;
 
         let max_size: qttypes::QSize = constraints.max.map_or_else(
-            || qttypes::QSize { width: WIDGET_SIZE_MAX, height: WIDGET_SIZE_MAX },
+            || qttypes::QSize {
+                width: WIDGET_SIZE_MAX,
+                height: WIDGET_SIZE_MAX,
+            },
             into_qsize,
         );
 
@@ -2813,8 +2943,11 @@ impl WindowAdapterInternal for QtWindow {
         let widget_ptr = self.widget_ptr();
 
         let has_text = request.data().has_plain_text();
-        let text: qttypes::QString =
-            request.data().plain_text().map(|s| s.as_str().into()).unwrap_or_default();
+        let text: qttypes::QString = request
+            .data()
+            .plain_text()
+            .map(|s| s.as_str().into())
+            .unwrap_or_default();
 
         let has_image = request.data().has_image();
         let payload_pixmap = request
@@ -2828,7 +2961,9 @@ impl WindowAdapterInternal for QtWindow {
             .data()
             .file_paths()
             .map(|paths| {
-                paths.map(|p| qttypes::QString::from(p.to_string_lossy().as_ref())).collect()
+                paths
+                    .map(|p| qttypes::QString::from(p.to_string_lossy().as_ref()))
+                    .collect()
             })
             .unwrap_or_default();
 
@@ -2950,7 +3085,11 @@ impl WindowAdapterInternal for QtWindow {
     fn set_mouse_cursor(&self, cursor: MouseCursorInner) -> MouseCursorHandling {
         let widget_ptr = self.widget_ptr();
         match cursor {
-            MouseCursorInner::CustomMouseCursor { image, hotspot_x, hotspot_y } => {
+            MouseCursorInner::CustomMouseCursor {
+                image,
+                hotspot_x,
+                hotspot_y,
+            } => {
                 let source_size = image.size();
                 let image_inner: &ImageInner = (&image).into();
                 // Rasterize scalable sources at scale_factor so SVG cursors are crisp on high-DPI.
@@ -3305,8 +3444,15 @@ mod tests {
         let mut raw = QRawFont::default();
         raw.load_from_data(data, 16.0);
         assert!(raw.is_valid());
-        assert!(raw.is_variable(), "the embedded font is not variable; pick another");
-        eprintln!("QRawFont::loadFromData: {} {}", raw.style_name(), raw.weight());
+        assert!(
+            raw.is_variable(),
+            "the embedded font is not variable; pick another"
+        );
+        eprintln!(
+            "QRawFont::loadFromData: {} {}",
+            raw.style_name(),
+            raw.weight()
+        );
 
         let got = FONT_CACHE
             .with(|cache| {
