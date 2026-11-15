@@ -1,0 +1,57 @@
+From 552e4dd32ace35fa2a442521f5694f48d3794884 Mon Sep 17 00:00:00 2001
+From: Wakunguma Kalimukwa <contact@wakunguma.com>
+Date: Thu, 15 Oct 2026 11:13:51 -0600
+Subject: [PATCH 2/2] testing: Add match_by_accessible_label query
+
+---
+ internal/backends/testing/search_api.rs | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/internal/backends/testing/search_api.rs b/internal/backends/testing/search_api.rs
+index 4a2f6e0a0..85c320302 100644
+--- a/internal/backends/testing/search_api.rs
++++ b/internal/backends/testing/search_api.rs
+@@ -122,6 +122,7 @@ impl<T: ComponentHandle> Sealed for T {}
+ enum SingleElementMatch {
+     MatchById { id: String, root_base: Option<String> },
+     MatchByTypeName(String),
++    MatchByAccessibleLabel(String),
+     MatchByTypeNameOrBase(String),
+     MatchByAccessibleRole(crate::AccessibleRole),
+     MatchByPredicate(Box<dyn Fn(&ElementHandle) -> bool>),
+@@ -155,6 +156,9 @@ fn matches(&self, element: &ElementHandle) -> bool {
+             SingleElementMatch::MatchByAccessibleRole(role) => {
+                 element.accessible_role() == Some(*role)
+             }
++            SingleElementMatch::MatchByAccessibleLabel(label) => {
++                element.accessible_label() == Some(label.into())
++            }
+             SingleElementMatch::MatchByPredicate(predicate) => (predicate)(element),
+         }
+     }
+@@ -280,6 +284,14 @@ pub fn match_accessible_role(mut self, role: crate::AccessibleRole) -> Self {
+         self
+     }
+ 
++    /// Include only elements in the results where [`ElementHandle::accessible_label()`] is equal to the provided `label`.
++    pub fn match_accessible_label(mut self, label: impl Into<String>) -> Self {
++        self.query_stack.push(ElementQueryInstruction::MatchSingleElement(
++            SingleElementMatch::MatchByAccessibleLabel(label.into()),
++        ));
++        self
++    }
++
+     pub fn match_predicate(mut self, predicate: impl Fn(&ElementHandle) -> bool + 'static) -> Self {
+         self.query_stack.push(ElementQueryInstruction::MatchSingleElement(
+             SingleElementMatch::MatchByPredicate(Box::new(predicate)),
+@@ -1295,6 +1307,7 @@ fn test_matches() {
+ 
+     assert_eq!(root.query_descendants().match_id("App::visible-element").find_all().len(), 1);
+     assert_eq!(root.query_descendants().match_id("App::inner-element").find_all().len(), 1);
++    assert_eq!(root.query_descendants().match_accessible_label("hello").find_all().len(), 1);
+ 
+     assert_eq!(
+         root.query_descendants()
+-- 
+2.55.0.windows.3
+

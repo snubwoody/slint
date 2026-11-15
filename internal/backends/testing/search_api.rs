@@ -122,6 +122,7 @@ impl<T: ComponentHandle> Sealed for T {}
 enum SingleElementMatch {
     MatchById { id: String, root_base: Option<String> },
     MatchByTypeName(String),
+    MatchByAccessibleLabel(String),
     MatchByTypeNameOrBase(String),
     MatchByAccessibleRole(crate::AccessibleRole),
     MatchByAccessibleLabel(String),
@@ -1359,6 +1360,7 @@ fn test_matches() {
 
     assert_eq!(root.query_descendants().match_id("App::visible-element").find_all().len(), 1);
     assert_eq!(root.query_descendants().match_id("App::inner-element").find_all().len(), 1);
+    assert_eq!(root.query_descendants().match_accessible_label("hello").find_all().len(), 1);
 
     assert_eq!(
         root.query_descendants()

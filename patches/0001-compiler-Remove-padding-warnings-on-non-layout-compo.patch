@@ -1,0 +1,167 @@
+From 949a000e6eb4b665c6c0b0698ba183cbaaddb62b Mon Sep 17 00:00:00 2001
+From: "Wakunguma K." <contact@wakunguma.com>
+Date: Tue, 28 Jul 2026 21:18:47 -0600
+Subject: [PATCH 1/2] compiler: Remove padding warnings on non-layout
+ components
+
+Removing this warning as there's currently no way to have custom padding properties on a component. If you use the default ones you get a warning, and you can't add your own because they already exist on every component.
+---
+ internal/compiler/passes/lower_layout.rs      | 38 +++++++++--------
+ .../tests/syntax/layout/padding.slint         | 42 +++++++++++--------
+ 2 files changed, 45 insertions(+), 35 deletions(-)
+
+diff --git a/internal/compiler/passes/lower_layout.rs b/internal/compiler/passes/lower_layout.rs
+index 6fb7b50cc..5b3e42b10 100644
+--- a/internal/compiler/passes/lower_layout.rs
++++ b/internal/compiler/passes/lower_layout.rs
+@@ -2452,14 +2452,10 @@ fn check_number_literal_is_positive_integer(
+     }
+ }
+ 
+-fn recognized_layout_types() -> &'static [&'static str] {
+-    &["Row", "GridLayout", "HorizontalLayout", "VerticalLayout", "FlexboxLayout", "Dialog"]
+-}
+-
+ /// Checks that there are no layout specific properties used wrongly
+ fn check_no_layout_properties(
+     item: &ElementRc,
+-    layout_type: &Option<SmolStr>,
++    _layout_type: &Option<SmolStr>,
+     parent_layout_type: &Option<SmolStr>,
+     diag: &mut BuildDiagnostics,
+ ) {
+@@ -2491,22 +2487,28 @@ fn check_no_layout_properties(
+                 &*expr.borrow(),
+             );
+         }
+-        if (layout_type.is_none()
+-            || !recognized_layout_types().contains(&layout_type.as_ref().unwrap().as_str()))
+-            && matches!(
+-                prop.as_ref(),
+-                "padding" | "padding-left" | "padding-right" | "padding-top" | "padding-bottom"
+-            )
+-            && !check_inherits_layout(item)
+-        {
+-            diag.push_warning(
+-                format!("{prop} only has effect on layout elements"),
+-                &*expr.borrow(),
+-            );
+-        }
++
++        // Removing this warning as there's currently no way to have custom padding
++        // properties on a component. If you use the default ones you get a warning,
++        // and you can't add your own because they already exist on every component.
++
++        // if (layout_type.is_none()
++        //     || !recognized_layout_types().contains(&layout_type.as_ref().unwrap().as_str()))
++        //     && matches!(
++        //         prop.as_ref(),
++        //         "padding" | "padding-left" | "padding-right" | "padding-top" | "padding-bottom"
++        //     )
++        //     && !check_inherits_layout(item)
++        // {
++        //     diag.push_warning(
++        //         format!("{prop} only has effect on layout elements"),
++        //         &*expr.borrow(),
++        //     );
++        // }
+     }
+ 
+     /// Check if the element inherits from a layout that was lowered
++    #[allow(unused)] // This was used above when checking for padding warnings
+     fn check_inherits_layout(item: &ElementRc) -> bool {
+         if let ElementType::Component(c) = &item.borrow().base_type {
+             c.root_element.borrow().debug.iter().any(|d| d.layout.is_some())
+diff --git a/internal/compiler/tests/syntax/layout/padding.slint b/internal/compiler/tests/syntax/layout/padding.slint
+index 5c8a75609..7e55176f9 100644
+--- a/internal/compiler/tests/syntax/layout/padding.slint
++++ b/internal/compiler/tests/syntax/layout/padding.slint
+@@ -3,33 +3,32 @@
+ 
+ component MyLayout inherits VerticalLayout {
+     padding: 5px;
+-    Rectangle { padding: 5px; }
+-//                       >  <warning{padding only has effect on layout elements}
++    Rectangle {
++        padding: 5px;
++    }
+ }
+ 
+ component MyLayout2 inherits VerticalLayout {
+     padding-top: 5px;
+ }
+ 
+-component MyLayoutDerived inherits MyLayout2 {}
++component MyLayoutDerived inherits MyLayout2 { }
+ 
+ export component MyDialog inherits Dialog {
+     padding: 5px;
+-    Rectangle { padding: 5px; }
+-//                       >  <warning{padding only has effect on layout elements}
++    Rectangle {
++        padding: 5px;
++    }
+ }
+ 
+ export component Test {
+ 
+     padding: 8px;
+-//           >  <warning{padding only has effect on layout elements}
+ 
+     padding-bottom: 2px;
+-//                  >  <warning{padding-bottom only has effect on layout elements}
+ 
+     Rectangle {
+         padding-top: 2px;
+-//                   >  <warning{padding-top only has effect on layout elements}
+         GridLayout {
+             padding: 5px;
+         }
+@@ -39,10 +38,8 @@ export component Test {
+         padding-left: 5px;
+         Rectangle {
+             padding: 5px;
+-//                   >  <warning{padding only has effect on layout elements}
+             Rectangle {
+                 padding: 5px;
+-//                       >  <warning{padding only has effect on layout elements}
+             }
+         }
+     }
+@@ -51,15 +48,26 @@ export component Test {
+         padding-left: 10px;
+         Rectangle {
+             padding: -5px;
+-//                   >   <warning{padding only has effect on layout elements}
+         }
+     }
+ 
+-    if false: MyDialog{ padding-left: 10px; }
++    if false: MyDialog {
++        padding-left: 10px;
++    }
+ 
+-    MyLayout2 { padding-right: 10px; }
+-    MyLayout2 { padding-top: 10px; }
+-    MyLayoutDerived { padding-right: 10px; }
+-    MyLayoutDerived { padding-top: 10px; }
+-}
++    MyLayout2 {
++        padding-right: 10px;
++    }
++
++    MyLayout2 {
++        padding-top: 10px;
++    }
+ 
++    MyLayoutDerived {
++        padding-right: 10px;
++    }
++
++    MyLayoutDerived {
++        padding-top: 10px;
++    }
++}
+-- 
+2.55.0.windows.3
+
