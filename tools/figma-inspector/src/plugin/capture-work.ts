@@ -1,0 +1,267 @@
+// Copyright © SixtyFPS GmbH <info@slint.dev>
+// SPDX-License-Identifier: MIT
+
+import {
+    decodeValue,
+    type SourceBytes,
+    type SourceCapture,
+    type SourceNode,
+} from "./source";
+
+export function reusableCapture(source: SourceCapture<SourceBytes>): boolean {
+    const seen = new Set<string>();
+    const reusable = (node: SourceNode<SourceBytes>): boolean => {
+        if (seen.has(node.id)) return true;
+        seen.add(node.id);
+        if (
+            node.errors.length ||
+            node.exports?.png?.error ||
+            node.exports?.svg.error ||
+            node.segments?.error
+        )
+            return false;
+        return (node.children ?? []).every(reusable);
+    };
+    return (
+        Object.values(source.images).every(
+            (image) => image.value !== undefined,
+        ) &&
+        reusable(source.root) &&
+        (source.components?.definitions ?? []).every((definition) =>
+            definition.variants.every((variant) => reusable(variant.root)),
+        )
+    );
+}
+
+export class CaptureCancelled extends Error {
+    public constructor() {
+        super("Capture cancelled");
+    }
+}
+
+export class HostCallTimeout extends Error {
+    public constructor() {
+        super(
+            "Figma did not finish reading this selection. Restart the plugin if this continues.",
+        );
+    }
+}
+
+const HOST_CALL_TIMEOUT_MS = 60_000;
+
+/** Stop waiting for an async Figma call, which can't be aborted and may never settle. */
+export async function withHostCallTimeout<T>(
+    operation: () => Promise<T>,
+    timeoutMs = HOST_CALL_TIMEOUT_MS,
+): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+        return await Promise.race([
+            operation(),
+            new Promise<never>((_, reject) => {
+                timer = setTimeout(
+                    () => reject(new HostCallTimeout()),
+                    timeoutMs,
+                );
+            }),
+        ]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+export type CaptureScheduler = <T>(operation: () => Promise<T>) => Promise<T>;
+
+/** Session-only, bounded cache. Rejections and results from invalidated runs are not retained. */
+export class CaptureCache {
+    private entries = new Map<string, { value: unknown; size: number }>();
+    private generation = 0;
+    private pending = new Map<string, Promise<unknown>>();
+    private retained = 0;
+    public hits = 0;
+    public constructor(private readonly budget = 32 * 1024 * 1024) {}
+    public token(): number {
+        return this.generation;
+    }
+    public valid(token: number): boolean {
+        return token === this.generation;
+    }
+    public get retainedBytes(): number {
+        return this.retained;
+    }
+    public clear(): void {
+        this.generation++;
+        this.entries.clear();
+        this.pending.clear();
+        this.retained = 0;
+    }
+    public async get<T>(
+        key: string,
+        load: () => Promise<T>,
+        sizeOf: (value: T) => number,
+        onHit?: () => void,
+    ): Promise<T> {
+        const generation = this.generation;
+        const old = this.peek<T>(key, generation);
+        if (old !== undefined) {
+            onHit?.();
+            return old;
+        }
+        const pending = this.pending.get(key);
+        if (pending) {
+            try {
+                const value = (await pending) as T;
+                this.hits++;
+                onHit?.();
+                return value;
+            } catch (error) {
+                // The older selection may have been cancelled while waiting for
+                // an export slot. The current selection still needs its own load.
+                if (error instanceof CaptureCancelled)
+                    return this.get(key, load, sizeOf, onHit);
+                throw error;
+            }
+        }
+        // Publish before awaiting so concurrent captures share the host export.
+        const operation = load();
+        this.pending.set(key, operation);
+        try {
+            const value = await operation;
+            this.put(key, value, sizeOf(value), generation);
+            return value;
+        } finally {
+            // An invalidation may have installed a newer request for this key.
+            if (this.pending.get(key) === operation) this.pending.delete(key);
+        }
+    }
+    public peek<T>(key: string, token = this.generation): T | undefined {
+        if (token !== this.generation) return undefined;
+        const old = this.entries.get(key);
+        if (!old) return undefined;
+        this.hits++;
+        this.entries.delete(key);
+        this.entries.set(key, old);
+        return old.value as T;
+    }
+    public put<T>(
+        key: string,
+        value: T,
+        valueBytes: number,
+        token = this.generation,
+    ): boolean {
+        const size = key.length * 2 + valueBytes;
+        if (
+            value === undefined ||
+            token !== this.generation ||
+            !Number.isFinite(size) ||
+            size < 0 ||
+            size > this.budget
+        )
+            return false;
+        const replaced = this.entries.get(key);
+        if (replaced) {
+            this.entries.delete(key);
+            this.retained -= replaced.size;
+        }
+        while (this.retained + size > this.budget && this.entries.size) {
+            const oldest = this.entries.entries().next().value;
+            if (!oldest) break;
+            this.entries.delete(oldest[0]);
+            this.retained -= oldest[1].size;
+        }
+        this.entries.set(key, { value, size });
+        this.retained += size;
+        return true;
+    }
+}
+
+/** Limits host API work without changing the order of captured children. */
+export function captureScheduler(limit: number): CaptureScheduler {
+    let active = 0;
+    const pending: (() => void)[] = [];
+    return async <T>(operation: () => Promise<T>): Promise<T> => {
+        if (active >= limit)
+            await new Promise<void>((resolve) => pending.push(resolve));
+        else active++;
+        try {
+            return await operation();
+        } finally {
+            const next = pending.shift();
+            if (next) next();
+            else active--;
+        }
+    };
+}
+
+export async function mapCaptureChildren<T, R>(
+    items: readonly T[],
+    limit: number,
+    visit: (item: T) => Promise<R>,
+    cancelled?: () => boolean,
+): Promise<R[]> {
+    const results: R[] = [];
+    let next = 0;
+    await Promise.all(
+        Array.from({ length: Math.min(limit, items.length) }, async () => {
+            while (next < items.length && !cancelled?.()) {
+                const index = next++;
+                results[index] = await visit(items[index]);
+            }
+        }),
+    );
+    return results;
+}
+
+/** Wall time with at least one active export; overlapping calls count once. */
+export function captureBusyTime(now: () => number = Date.now) {
+    let active = 0;
+    let started = 0;
+    let elapsed = 0;
+    return {
+        start(): () => void {
+            if (active++ === 0) started = now();
+            return () => {
+                if (--active === 0) elapsed += Math.max(0, now() - started);
+            };
+        },
+        duration(): number {
+            return elapsed + (active ? Math.max(0, now() - started) : 0);
+        },
+    };
+}
+
+/** Font availability can change without a document edit. Check only rasterized text. */
+export function sourceRasterFonts(
+    source: SourceCapture<SourceBytes>,
+): readonly string[] | undefined {
+    const fonts = new Set<string>();
+    const seen = new Set<string>();
+    let complete = true;
+    const add = (value: unknown): boolean => {
+        if (!value || typeof value !== "object") return false;
+        const font = value as { family?: unknown; style?: unknown };
+        if (typeof font.family !== "string" || typeof font.style !== "string")
+            return false;
+        fonts.add(JSON.stringify([font.family, font.style]));
+        return true;
+    };
+    const visit = (node: SourceNode<SourceBytes>) => {
+        if (seen.has(node.id)) return;
+        seen.add(node.id);
+        if (node.type === "TEXT" && node.exports) {
+            const segments = decodeValue(node.segments?.value);
+            if (Array.isArray(segments) && segments.length)
+                complete =
+                    segments.every((segment) => add(segment?.fontName)) &&
+                    complete;
+            else
+                complete =
+                    add(decodeValue(node.properties.fontName)) && complete;
+        }
+        for (const child of node.children ?? []) visit(child);
+    };
+    visit(source.root);
+    for (const definition of source.components?.definitions ?? [])
+        for (const variant of definition.variants) visit(variant.root);
+    return complete ? [...fonts].sort() : undefined;
+}

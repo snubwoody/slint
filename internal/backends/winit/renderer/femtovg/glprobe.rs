@@ -6,18 +6,18 @@
 
 use std::sync::OnceLock;
 
+use windows::core::{s, w};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
-use windows::Win32::Graphics::Gdi::{GetDC, HDC, ReleaseDC};
+use windows::Win32::Graphics::Gdi::{GetDC, ReleaseDC, HDC};
 use windows::Win32::Graphics::OpenGL::{
-    ChoosePixelFormat, PFD_DOUBLEBUFFER, PFD_DRAW_TO_WINDOW, PFD_MAIN_PLANE, PFD_SUPPORT_OPENGL,
-    PFD_TYPE_RGBA, PIXELFORMATDESCRIPTOR, SetPixelFormat, wglCreateContext, wglDeleteContext,
-    wglGetCurrentContext, wglGetCurrentDC, wglGetProcAddress, wglMakeCurrent,
+    wglCreateContext, wglDeleteContext, wglGetCurrentContext, wglGetCurrentDC, wglGetProcAddress,
+    wglMakeCurrent, ChoosePixelFormat, SetPixelFormat, PFD_DOUBLEBUFFER, PFD_DRAW_TO_WINDOW,
+    PFD_MAIN_PLANE, PFD_SUPPORT_OPENGL, PFD_TYPE_RGBA, PIXELFORMATDESCRIPTOR,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CS_OWNDC, CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, UnregisterClassW,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, UnregisterClassW, CS_OWNDC,
     WINDOW_EX_STYLE, WNDCLASSW, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_OVERLAPPED,
 };
-use windows::core::{s, w};
 
 pub fn opengl_2_available() -> bool {
     static AVAILABLE: OnceLock<bool> = OnceLock::new();
@@ -125,8 +125,7 @@ unsafe fn probe_device_context(hdc: HDC) -> Option<bool> {
         let available = wglMakeCurrent(hdc, context).is_ok().then(|| {
             let address = wglGetProcAddress(s!("glCreateShader")).map_or(0, |entry| entry as usize);
             let _ = wglMakeCurrent(previous_hdc, previous_context);
-            // Besides null, some drivers report a missing entry point as 1, 2, 3 or -1.
-            !matches!(address, 0 | 1 | 2 | 3 | usize::MAX)
+            is_valid_proc_address(address)
         });
 
         let _ = wglDeleteContext(context);
@@ -135,8 +134,21 @@ unsafe fn probe_device_context(hdc: HDC) -> Option<bool> {
     }
 }
 
+pub(super) fn is_valid_proc_address(address: usize) -> bool {
+    // Besides null, some drivers report a missing entry point as 1, 2, 3 or -1.
+    !matches!(address, 0 | 1 | 2 | 3 | usize::MAX)
+}
+
 #[test]
 fn probe_runs() {
     // The answer depends on the machine, so this only covers the probe running to completion.
     opengl_2_available();
+}
+
+#[test]
+fn proc_address_sentinels() {
+    for sentinel in [0, 1, 2, 3, usize::MAX] {
+        assert!(!is_valid_proc_address(sentinel));
+    }
+    assert!(is_valid_proc_address(0x1000));
 }
