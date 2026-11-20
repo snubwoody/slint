@@ -4,7 +4,7 @@
 use core::ops::ControlFlow;
 use i_slint_core::SharedString;
 use i_slint_core::accessibility::{AccessibilityAction, AccessibleStringProperty};
-use i_slint_core::api::{ComponentHandle, LogicalPosition};
+use i_slint_core::api::{ComponentHandle, LogicalPosition, ToSharedString};
 use i_slint_core::item_tree::{ItemTreeRc, ItemWeak, ParentItemTraversalMode};
 use i_slint_core::items::{ItemRc, Opacity, PointerEventButton};
 use i_slint_core::platform::WindowEvent;
@@ -1014,6 +1014,17 @@ impl ElementHandle {
         }
         if let Some(item) = self.item.upgrade() {
             item.accessible_action(&AccessibilityAction::Expand)
+        }
+    }
+
+    /// Invokes the element's `accessible-action-expand` callback, if declared. On widgets such as combo boxes, this
+    /// typically discloses the list of available choices.
+    pub fn invoke_accessible_set_value_action(&self, value: &str) {
+        if self.element_index != 0 {
+            return;
+        }
+        if let Some(item) = self.item.upgrade() {
+            item.accessible_action(&AccessibilityAction::SetValue(value.to_shared_string()))
         }
     }
 
